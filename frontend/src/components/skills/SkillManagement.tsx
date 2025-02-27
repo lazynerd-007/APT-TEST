@@ -1,77 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaTags, FaFilter } from 'react-icons/fa';
-
-// Types
-interface Skill {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface SkillCategory {
-  id: string;
-  name: string;
-  description: string;
-}
+import skillsService, { Skill, SkillCategory } from '../../services/skillsService';
 
 interface SkillManagementProps {
-  onCreateSkill?: (skill: Omit<Skill, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onUpdateSkill?: (id: string, skill: Partial<Skill>) => Promise<void>;
-  onDeleteSkill?: (id: string) => Promise<void>;
-  onCreateCategory?: (category: Omit<SkillCategory, 'id'>) => Promise<void>;
+  // Optional props for customization
+  onSkillCreated?: (skill: Skill) => void;
+  onSkillUpdated?: (skill: Skill) => void;
+  onSkillDeleted?: (id: string) => void;
 }
 
 const SkillManagement: React.FC<SkillManagementProps> = ({
-  onCreateSkill,
-  onUpdateSkill,
-  onDeleteSkill,
-  onCreateCategory
+  onSkillCreated,
+  onSkillUpdated,
+  onSkillDeleted
 }) => {
-  // Sample data - in a real app, this would come from an API
-  const [skills, setSkills] = useState<Skill[]>([
-    {
-      id: '1',
-      name: 'JavaScript Fundamentals',
-      description: 'Core JavaScript concepts including variables, functions, and basic DOM manipulation',
-      category: 'Programming',
-      difficulty: 'beginner',
-      tags: ['frontend', 'web development', 'essential'],
-      createdAt: '2023-01-15T00:00:00Z',
-      updatedAt: '2023-01-15T00:00:00Z'
-    },
-    {
-      id: '2',
-      name: 'React Component Architecture',
-      description: 'Understanding React component lifecycle, props, state, and hooks',
-      category: 'Programming',
-      difficulty: 'intermediate',
-      tags: ['frontend', 'react', 'ui'],
-      createdAt: '2023-01-20T00:00:00Z',
-      updatedAt: '2023-02-10T00:00:00Z'
-    },
-    {
-      id: '3',
-      name: 'SQL Query Optimization',
-      description: 'Advanced techniques for optimizing database queries',
-      category: 'Database',
-      difficulty: 'advanced',
-      tags: ['backend', 'database', 'performance'],
-      createdAt: '2023-02-05T00:00:00Z',
-      updatedAt: '2023-02-05T00:00:00Z'
-    }
-  ]);
-
-  const [categories, setCategories] = useState<SkillCategory[]>([
-    { id: '1', name: 'Programming', description: 'Software development skills' },
-    { id: '2', name: 'Database', description: 'Database design and query skills' },
-    { id: '3', name: 'DevOps', description: 'Deployment and infrastructure skills' },
-    { id: '4', name: 'Soft Skills', description: 'Communication and teamwork' }
-  ]);
+  // State for skills and categories
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [categories, setCategories] = useState<SkillCategory[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState('');
@@ -97,6 +44,29 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     name: '',
     description: ''
   });
+
+  // Fetch skills and categories on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [skillsData, categoriesData] = await Promise.all([
+          skillsService.getSkills(),
+          skillsService.getCategories()
+        ]);
+        setSkills(skillsData);
+        setCategories(categoriesData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load skills and categories. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Reset form when closing
   useEffect(() => {
@@ -137,82 +107,93 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
   };
 
   // Handle skill submission
-  const handleSkillSubmit = (e: React.FormEvent) => {
+  const handleSkillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const skillData = {
-      name: formData.name,
-      description: formData.description,
-      category: formData.category,
-      difficulty: formData.difficulty,
-      tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
-    };
-
-    if (editingSkill) {
-      // Update existing skill
-      if (onUpdateSkill) {
-        onUpdateSkill(editingSkill.id, skillData);
-      }
-      
-      // For demo purposes, update local state
-      setSkills(skills.map(skill => 
-        skill.id === editingSkill.id 
-          ? { 
-              ...skill, 
-              ...skillData, 
-              updatedAt: new Date().toISOString() 
-            } 
-          : skill
-      ));
-      
-      setEditingSkill(null);
-    } else {
-      // Create new skill
-      if (onCreateSkill) {
-        onCreateSkill(skillData);
-      }
-      
-      // For demo purposes, add to local state
-      const newSkill: Skill = {
-        id: Date.now().toString(),
-        ...skillData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+    try {
+      const skillData = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
       };
+
+      if (editingSkill) {
+        // Update existing skill
+        const updatedSkill = await skillsService.updateSkill(editingSkill.id, skillData);
+        
+        // Update local state
+        setSkills(skills.map(skill => 
+          skill.id === editingSkill.id ? updatedSkill : skill
+        ));
+        
+        if (onSkillUpdated) {
+          onSkillUpdated(updatedSkill);
+        }
+        
+        setEditingSkill(null);
+      } else {
+        // Create new skill
+        const newSkill = await skillsService.createSkill(skillData);
+        
+        // Update local state
+        setSkills([...skills, newSkill]);
+        
+        if (onSkillCreated) {
+          onSkillCreated(newSkill);
+        }
+      }
       
-      setSkills([...skills, newSkill]);
+      setIsAddingSkill(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error saving skill:', err);
+      setError('Failed to save skill. Please try again.');
     }
-    
-    setIsAddingSkill(false);
   };
 
   // Handle category submission
-  const handleCategorySubmit = (e: React.FormEvent) => {
+  const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (onCreateCategory) {
-      onCreateCategory(categoryFormData);
+    try {
+      // Create new category
+      const newCategory = await skillsService.createCategory(categoryFormData);
+      
+      // Update local state
+      setCategories([...categories, newCategory]);
+      
+      setIsAddingCategory(false);
+      setCategoryFormData({ name: '', description: '' });
+      setError(null);
+    } catch (err) {
+      console.error('Error saving category:', err);
+      setError('Failed to save category. Please try again.');
     }
-    
-    // For demo purposes, add to local state
-    const newCategory: SkillCategory = {
-      id: Date.now().toString(),
-      ...categoryFormData
-    };
-    
-    setCategories([...categories, newCategory]);
-    setIsAddingCategory(false);
-    setCategoryFormData({ name: '', description: '' });
   };
 
   // Handle skill deletion
-  const handleDeleteSkill = (id: string) => {
-    if (onDeleteSkill) {
-      onDeleteSkill(id);
+  const handleDeleteSkill = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this skill?')) {
+      return;
     }
     
-    // For demo purposes, remove from local state
-    setSkills(skills.filter(skill => skill.id !== id));
+    try {
+      await skillsService.deleteSkill(id);
+      
+      // Update local state
+      setSkills(skills.filter(skill => skill.id !== id));
+      
+      if (onSkillDeleted) {
+        onSkillDeleted(id);
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting skill:', err);
+      setError('Failed to delete skill. Please try again.');
+    }
   };
 
   // Filter skills based on search and filters
@@ -228,8 +209,21 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     return matchesSearch && matchesCategory && matchesDifficulty;
   });
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-soft p-6 flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading skills...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-soft p-6">
+      {/* Header with title and action buttons */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Skill Management</h2>
         <div className="flex space-x-2">
@@ -249,6 +243,16 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="mb-6 bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded relative" role="alert">
+          <div className="flex items-center">
+            <span className="mr-2">⚠️</span>
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
@@ -277,7 +281,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
             >
               <option value="">All Categories</option>
               {categories.map(category => (
-                <option key={category.id} value={category.name}>
+                <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
@@ -337,7 +341,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {skill.category}
+                      {skill.category_name || getCategoryName(skill.category)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -378,7 +382,9 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
             ) : (
               <tr>
                 <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                  No skills found matching your criteria
+                  {searchTerm || selectedCategory || selectedDifficulty 
+                    ? 'No skills found matching your criteria' 
+                    : 'No skills available. Add your first skill!'}
                 </td>
               </tr>
             )}
@@ -436,7 +442,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
                 >
                   <option value="">Select a category</option>
                   {categories.map(category => (
-                    <option key={category.id} value={category.name}>
+                    <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
                   ))}
@@ -554,6 +560,12 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
       )}
     </div>
   );
+
+  // Helper function to get category name from ID
+  function getCategoryName(categoryId: string): string {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : 'Unknown';
+  }
 };
 
 export default SkillManagement; 

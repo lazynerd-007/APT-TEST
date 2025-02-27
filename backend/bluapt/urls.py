@@ -34,6 +34,7 @@ api_v1_patterns = [
     path('employer/', include('assessments.urls.employer')),
     path('execution/', include('execution.urls')),
     path('analytics/', include('analytics.urls')),
+    path('skills/', include('skills.urls')),
 ]
 
 urlpatterns = [
