@@ -70,7 +70,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
 
   const watchTests = watch('tests');
   const watchSkillIds = watch('skillIds');
-  const totalWeight = watchTests.reduce((sum, test) => sum + (parseFloat(test.weight) || 0), 0);
+  const totalWeight = watchTests.reduce((sum, test) => sum + (typeof test.weight === 'string' ? parseFloat(test.weight) : (test.weight || 0)), 0);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({

@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.8.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@headlessui/react": "^1.7.17",
     "@monaco-editor/react": "^4.6.0",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -21,7 +24,7 @@
     "axios": "^1.6.2",
     "chart.js": "^4.4.0",
     "date-fns": "^2.30.0",
-    "framer-motion": "^10.16.5",
+    "framer-motion": "^10.18.0",
     "next": "14.0.3",
     "next-auth": "^4.24.5",
     "react": "^18",
@@ -44,4 +47,4 @@
     "postcss": "^8",
     "typescript": "^5"
   }
-} 
+}

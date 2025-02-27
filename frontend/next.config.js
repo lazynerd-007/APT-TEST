@@ -9,15 +9,16 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
     SOCKET_URL: process.env.SOCKET_URL || 'http://localhost:8000',
   },
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/dashboard',
-        permanent: true,
-      },
-    ];
-  },
+  // Removing the redirect to allow the index page to be shown
+  // async redirects() {
+  //   return [
+  //     {
+  //       source: '/',
+  //       destination: '/dashboard',
+  //       permanent: true,
+  //     },
+  //   ];
+  // },
 }
 
 module.exports = nextConfig 
