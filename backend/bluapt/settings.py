@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'assessments',
     'execution',
     'analytics',
+    'skills',
 ]
 
 MIDDLEWARE = [
@@ -83,11 +84,19 @@ WSGI_APPLICATION = 'bluapt.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/bluapt'),
-        conn_max_age=600,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
+
+# Uncomment to use PostgreSQL
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.getenv('DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/bluapt'),
+#         conn_max_age=600,
+#     )
+# }
 
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
@@ -137,8 +146,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

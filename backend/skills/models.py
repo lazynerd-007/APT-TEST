@@ -4,7 +4,6 @@ Skills models for the BLUAPT platform.
 import uuid
 from django.db import models
 from django.utils import timezone
-from django.contrib.postgres.fields import ArrayField
 
 
 class SkillCategory(models.Model):
@@ -45,11 +44,7 @@ class Skill(models.Model):
         choices=DIFFICULTY_CHOICES,
         default='intermediate'
     )
-    tags = ArrayField(
-        models.CharField(max_length=50),
-        blank=True,
-        default=list
-    )
+    tags = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,4 +53,17 @@ class Skill(models.Model):
         unique_together = ["name", "category"]
 
     def __str__(self):
-        return f"{self.name} ({self.get_difficulty_display()})" 
+        return f"{self.name} ({self.get_difficulty_display()})"
+
+    def get_tags_list(self):
+        """Return tags as a list."""
+        if not self.tags:
+            return []
+        return [tag.strip() for tag in self.tags.split(',')]
+
+    def set_tags_list(self, tags_list):
+        """Set tags from a list."""
+        if not tags_list:
+            self.tags = ""
+        else:
+            self.tags = ",".join(tags_list) 

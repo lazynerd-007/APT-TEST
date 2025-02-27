@@ -25,15 +25,16 @@ schema_view = get_schema_view(
 
 # API URL patterns
 api_v1_patterns = [
-    path('auth/', include('users.urls.auth')),
-    path('users/', include('users.urls.users')),
-    path('organizations/', include('users.urls.organizations')),
-    path('tests/', include('assessments.urls.tests')),
-    path('assessments/', include('assessments.urls.assessments')),
-    path('candidate/', include('assessments.urls.candidate')),
-    path('employer/', include('assessments.urls.employer')),
-    path('execution/', include('execution.urls')),
-    path('analytics/', include('analytics.urls')),
+    # Temporarily comment out problematic imports
+    # path('auth/', include('users.urls.auth')),
+    # path('users/', include('users.urls.users')),
+    # path('organizations/', include('users.urls.organizations')),
+    # path('tests/', include('assessments.urls.tests')),
+    # path('assessments/', include('assessments.urls.assessments')),
+    # path('candidate/', include('assessments.urls.candidate')),
+    # path('employer/', include('assessments.urls.employer')),
+    # path('execution/', include('execution.urls')),
+    # path('analytics/', include('analytics.urls')),
     path('skills/', include('skills.urls')),
 ]
 
