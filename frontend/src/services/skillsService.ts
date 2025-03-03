@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_URL } from '../config';
 
 // Types
 export interface Skill {
@@ -34,10 +35,7 @@ export interface SkillCategoryCreateData {
   description: string;
 }
 
-// API base URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-
-// Create axios instance with auth headers
+// Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -45,40 +43,77 @@ const api = axios.create({
   },
 });
 
-// Add auth token to requests
+// Add request interceptor to include auth token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const authData = localStorage.getItem('bluapt_auth');
+  if (authData) {
+    try {
+      const { token } = JSON.parse(authData);
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error parsing auth data:', error);
+    }
   }
   return config;
 });
 
-// Skills API service
-const skillsService = {
-  // Skills
-  getSkills: async (): Promise<Skill[]> => {
-    const response = await api.get('/skills/');
-    return response.data;
+// Skills API functions
+export const skillsService = {
+  // Get all skills
+  async getSkills(params = {}) {
+    try {
+      const response = await api.get('/skills/', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+      throw error;
+    }
   },
 
-  getSkillById: async (id: string): Promise<Skill> => {
-    const response = await api.get(`/skills/${id}/`);
-    return response.data;
+  // Get a single skill by ID
+  async getSkill(id: string) {
+    try {
+      const response = await api.get(`/skills/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching skill ${id}:`, error);
+      throw error;
+    }
   },
 
-  createSkill: async (skillData: SkillCreateData): Promise<Skill> => {
-    const response = await api.post('/skills/', skillData);
-    return response.data;
+  // Create a new skill
+  async createSkill(skill: Omit<Skill, 'id'>) {
+    try {
+      const response = await api.post('/skills/', skill);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating skill:', error);
+      throw error;
+    }
   },
 
-  updateSkill: async (id: string, skillData: Partial<SkillCreateData>): Promise<Skill> => {
-    const response = await api.patch(`/skills/${id}/`, skillData);
-    return response.data;
+  // Update an existing skill
+  async updateSkill(id: string, skill: Partial<Skill>) {
+    try {
+      const response = await api.put(`/skills/${id}/`, skill);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating skill ${id}:`, error);
+      throw error;
+    }
   },
 
-  deleteSkill: async (id: string): Promise<void> => {
-    await api.delete(`/skills/${id}/`);
+  // Delete a skill
+  async deleteSkill(id: string) {
+    try {
+      await api.delete(`/skills/${id}/`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting skill ${id}:`, error);
+      throw error;
+    }
   },
 
   // Filter skills
@@ -109,29 +144,59 @@ const skillsService = {
     return response.data;
   },
 
-  // Categories
-  getCategories: async (): Promise<SkillCategory[]> => {
-    const response = await api.get('/skills/categories/');
-    return response.data;
+  // Get all skill categories
+  async getCategories() {
+    try {
+      const response = await api.get('/skills/categories/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching skill categories:', error);
+      throw error;
+    }
   },
 
-  getCategoryById: async (id: string): Promise<SkillCategory> => {
-    const response = await api.get(`/skills/categories/${id}/`);
-    return response.data;
+  // Get a single category by ID
+  async getCategory(id: string) {
+    try {
+      const response = await api.get(`/skills/categories/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching category ${id}:`, error);
+      throw error;
+    }
   },
 
-  createCategory: async (categoryData: SkillCategoryCreateData): Promise<SkillCategory> => {
-    const response = await api.post('/skills/categories/', categoryData);
-    return response.data;
+  // Create a new category
+  async createCategory(category: Omit<SkillCategory, 'id'>) {
+    try {
+      const response = await api.post('/skills/categories/', category);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating category:', error);
+      throw error;
+    }
   },
 
-  updateCategory: async (id: string, categoryData: Partial<SkillCategoryCreateData>): Promise<SkillCategory> => {
-    const response = await api.patch(`/skills/categories/${id}/`, categoryData);
-    return response.data;
+  // Update an existing category
+  async updateCategory(id: string, category: Partial<SkillCategory>) {
+    try {
+      const response = await api.put(`/skills/categories/${id}/`, category);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating category ${id}:`, error);
+      throw error;
+    }
   },
 
-  deleteCategory: async (id: string): Promise<void> => {
-    await api.delete(`/skills/categories/${id}/`);
+  // Delete a category
+  async deleteCategory(id: string) {
+    try {
+      await api.delete(`/skills/categories/${id}/`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting category ${id}:`, error);
+      throw error;
+    }
   },
 
   // Get skills for a specific category

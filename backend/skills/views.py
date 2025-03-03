@@ -4,7 +4,7 @@ API views for the skills app.
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Skill, SkillCategory
 from .serializers import SkillSerializer, SkillCategorySerializer
@@ -16,7 +16,7 @@ class SkillCategoryViewSet(viewsets.ModelViewSet):
     """
     queryset = SkillCategory.objects.all()
     serializer_class = SkillCategorySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
@@ -39,7 +39,7 @@ class SkillViewSet(viewsets.ModelViewSet):
     """
     queryset = Skill.objects.all()
     serializer_class = SkillSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'difficulty']
     search_fields = ['name', 'description', 'tags']
