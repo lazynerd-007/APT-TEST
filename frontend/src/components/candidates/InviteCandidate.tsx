@@ -92,29 +92,22 @@ const InviteCandidate: React.FC<InviteCandidateProps> = ({ assessmentId, onSucce
     setLoading(true);
     
     try {
-      // In a real app, this would be an API call to your backend
-      // which would then use Postmark to send the emails
+      // Call the candidateService to send invitations
+      const response = await candidateService.inviteCandidates({
+        assessment_id: selectedAssessmentId,
+        candidates: candidates as CandidateInvite[],
+        message: message || undefined
+      });
       
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setSuccess(`Successfully sent invitations to ${response.success_count} candidate(s)`);
       
-      // Generate mock access codes for demonstration
-      const invitedCandidates = candidates.map(candidate => ({
-        ...candidate,
-        accessCode: Math.random().toString(36).substring(2, 8).toUpperCase()
-      }));
+      // If there were any failures, show them in the error message
+      if (response.failed_count > 0) {
+        const failedEmails = response.failed.map(f => f.email).join(', ');
+        setError(`Failed to invite: ${failedEmails}`);
+      }
       
-      console.log('Invited candidates:', invitedCandidates);
-      console.log('Selected assessment:', selectedAssessmentId);
-      console.log('Custom message:', message);
-      
-      // In a real implementation, the backend would:
-      // 1. Create candidate accounts in the database
-      // 2. Associate them with the selected assessment
-      // 3. Generate unique access codes
-      // 4. Send emails via Postmark
-      
-      setSuccess(`Successfully sent invitations to ${candidates.length} candidate(s)`);
+      // Reset the form
       setCandidates([{ email: '', name: '' }]);
       setMessage('');
       
@@ -122,7 +115,7 @@ const InviteCandidate: React.FC<InviteCandidateProps> = ({ assessmentId, onSucce
         onSuccess();
       }
     } catch (err) {
-      setError('Failed to send invitations. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send invitations. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { FaEnvelope, FaExclamationCircle } from 'react-icons/fa';
 import Image from 'next/image';
 
+// Add import for candidateService
+import candidateService from '../../services/candidateService';
+
 const CandidateLogin = () => {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -22,16 +25,19 @@ const CandidateLogin = () => {
         throw new Error('Please provide your email and access code');
       }
       
-      // In a real app, this would call an API endpoint to verify the access code
-      // For demo purposes, we'll just simulate a successful login
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo, let's use a specific test account
-      if (email === 'candidate@example.com' && accessCode === 'TEST123') {
-        // Successful login
+      // Verify the access code using the candidateService
+      try {
+        const response = await candidateService.verifyAccessCode(email, accessCode);
+        
+        // If verification is successful, redirect to the dashboard
         router.push('/candidates/dashboard');
-      } else {
-        throw new Error('Invalid email or access code');
+      } catch (error) {
+        // For demo purposes, still allow the test account to log in
+        if (email === 'candidate@example.com' && accessCode === 'TEST123') {
+          router.push('/candidates/dashboard');
+        } else {
+          throw error;
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
