@@ -271,4 +271,17 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+# Postmark Email Settings
+POSTMARK_API_TOKEN = os.environ.get('POSTMARK_API_TOKEN', 'your-postmark-api-token')
+POSTMARK_SENDER_EMAIL = os.environ.get('POSTMARK_SENDER_EMAIL', 'assessments@bluapt.com')
+POSTMARK_SENDER_NAME = os.environ.get('POSTMARK_SENDER_NAME', 'BLUAPT Assessments')
+
+# Email Templates
+EMAIL_TEMPLATES = {
+    'candidate_invitation': {
+        'subject': 'You\'ve been invited to take an assessment',
+        'template_id': 'candidate-invitation-template',  # Create this template in Postmark
+    }
 } 
