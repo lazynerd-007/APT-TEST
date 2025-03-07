@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { FaEnvelope, FaPlus, FaTrash, FaSpinner } from 'react-icons/fa';
 
+// Add import for candidateService
+import candidateService, { CandidateInvite } from '../../services/candidateService';
+
 interface InviteCandidateProps {
   assessmentId?: string;
   onSuccess?: () => void;
