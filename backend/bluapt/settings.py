@@ -274,7 +274,7 @@ LOGGING = {
 }
 
 # Postmark Email Settings
-POSTMARK_API_TOKEN = os.environ.get('POSTMARK_API_TOKEN', 'your-postmark-api-token')
+POSTMARK_API_TOKEN = os.environ.get('POSTMARK_API_TOKEN', '6be4158a-6496-4d18-bedf-ecac1e65b9bc')
 POSTMARK_SENDER_EMAIL = os.environ.get('POSTMARK_SENDER_EMAIL', 'assessments@bluapt.com')
 POSTMARK_SENDER_NAME = os.environ.get('POSTMARK_SENDER_NAME', 'BLUAPT Assessments')
 
