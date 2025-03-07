@@ -23,6 +23,7 @@ import {
 import { FaGraduationCap, FaChartBar, FaDownload } from 'react-icons/fa';
 import assessmentsService, { CandidateSkillScore } from '@/services/assessmentsService';
 import skillsService from '@/services/skillsService';
+import jsPDF from 'jspdf';
 
 interface CandidateSkillProfileProps {
   candidateId: string;
@@ -145,9 +146,109 @@ const CandidateSkillProfile: React.FC<CandidateSkillProfileProps> = ({ candidate
   };
   
   const handleExportPDF = () => {
-    // This would be implemented with a PDF generation library
-    console.log('Export PDF functionality would be implemented here');
-    alert('PDF export functionality would be implemented here');
+    if (!skillScores) return;
+    
+    // Create a new PDF document
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.setTextColor(0, 0, 128);
+    doc.text('Candidate Skill Profile', pageWidth / 2, 20, { align: 'center' });
+    
+    // Add skill scores
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 128);
+    doc.text('Skill Assessment Scores', 20, 40);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    
+    let yPosition = 50;
+    skillScores.forEach((skill, index) => {
+      // Skip if we're about to go off the page
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+        
+        // Add header to new page
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 128);
+        doc.text('Skill Assessment Scores (continued)', 20, yPosition);
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        yPosition += 10;
+      }
+      
+      // Draw skill name and score
+      doc.text(`${skill.skill_details.name}:`, 20, yPosition);
+      doc.text(`${skill.score}%`, 150, yPosition);
+      
+      // Draw score bar
+      const barWidth = skill.score;
+      doc.setFillColor(getScoreColorRGB(skill.score));
+      doc.rect(20, yPosition + 2, barWidth, 5, 'F');
+      
+      yPosition += 15;
+    });
+    
+    // Add strengths and areas for improvement
+    if (topSkills.length > 0 || bottomSkills.length > 0) {
+      // Check if we need a new page
+      if (yPosition > 230) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      if (topSkills.length > 0) {
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 128);
+        doc.text('Key Strengths', 20, yPosition);
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        yPosition += 10;
+        
+        topSkills.forEach(skill => {
+          doc.text(`• ${skill.skill_details.name}`, 25, yPosition);
+          yPosition += 10;
+        });
+        
+        yPosition += 5;
+      }
+      
+      if (bottomSkills.length > 0) {
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 128);
+        doc.text('Areas for Improvement', 20, yPosition);
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        yPosition += 10;
+        
+        bottomSkills.forEach(skill => {
+          doc.text(`• ${skill.skill_details.name}`, 25, yPosition);
+          yPosition += 10;
+        });
+      }
+    }
+    
+    // Add footer with date
+    const today = new Date();
+    const dateStr = today.toLocaleDateString();
+    doc.setFontSize(10);
+    doc.setTextColor(128, 128, 128);
+    doc.text(`Generated on ${dateStr} by BLUAPT Skills Assessment Platform`, pageWidth / 2, 280, { align: 'center' });
+    
+    // Save the PDF
+    doc.save(`${candidateId}_Skill_Profile.pdf`);
+  };
+  
+  // Helper function to get RGB color values for PDF
+  const getScoreColorRGB = (score: number) => {
+    if (score >= 80) return [46, 204, 113]; // green
+    if (score >= 60) return [52, 152, 219]; // blue
+    if (score >= 40) return [241, 196, 15]; // yellow
+    return [231, 76, 60]; // red
   };
   
   if (loading) {

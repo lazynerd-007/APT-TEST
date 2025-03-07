@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -10,6 +10,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { FaExclamationTriangle, FaInfoCircle, FaCheckCircle } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 // Register ChartJS components
 ChartJS.register(
@@ -48,6 +49,43 @@ const FairnessMetrics: React.FC<FairnessMetricsProps> = ({
   showWarning,
   biasMetrics
 }) => {
+  const [showBiasMetrics, setShowBiasMetrics] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  
+  // Blind review state
+  const [blindReviewEnabled, setBlindReviewEnabled] = useState(false);
+  const [showBlindReviewSettings, setShowBlindReviewSettings] = useState(false);
+  const [blindReviewSettings, setBlindReviewSettings] = useState({
+    hideNames: true,
+    hideDemographics: true,
+    hideEducation: false,
+    multipleReviewers: true,
+    minReviewers: 2
+  });
+  
+  const handleSaveBlindReviewSettings = () => {
+    // In a real app, this would save settings to the backend
+    toast({
+      title: "Settings saved",
+      description: "Blind review settings have been updated successfully.",
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+    
+    // If blind review is enabled, apply the settings immediately
+    if (blindReviewEnabled) {
+      // In a real app, this would trigger an API call to apply settings
+      toast({
+        title: "Blind review active",
+        description: "Blind review has been applied to all subjective assessments.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   // Prepare chart data
   const data = {
     labels: demographicGroups,
@@ -236,8 +274,150 @@ const FairnessMetrics: React.FC<FairnessMetricsProps> = ({
             <div className="p-3 border border-gray-200 rounded-lg">
               <h4 className="font-medium text-gray-800">Blind Review Process</h4>
               <p className="text-sm text-gray-600 mt-1">
-                Implement blind review for subjective questions to reduce unconscious bias.
+                Enable blind review for subjective questions to reduce unconscious bias.
               </p>
+              <div className="mt-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      id="blind-review"
+                      name="blind-review"
+                      type="checkbox"
+                      checked={blindReviewEnabled}
+                      onChange={(e) => setBlindReviewEnabled(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="blind-review" className="ml-2 block text-sm text-gray-700">
+                      Enable Blind Review
+                    </label>
+                  </div>
+                  <button
+                    onClick={() => setShowBlindReviewSettings(!showBlindReviewSettings)}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    {showBlindReviewSettings ? 'Hide Settings' : 'Show Settings'}
+                  </button>
+                </div>
+                
+                {showBlindReviewSettings && (
+                  <div className="mt-3 bg-gray-50 p-3 rounded-md">
+                    <h5 className="font-medium text-gray-700 text-sm mb-2">Blind Review Settings</h5>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="hide-names"
+                            name="hide-names"
+                            type="checkbox"
+                            checked={blindReviewSettings.hideNames}
+                            onChange={(e) => setBlindReviewSettings({
+                              ...blindReviewSettings,
+                              hideNames: e.target.checked
+                            })}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label htmlFor="hide-names" className="font-medium text-gray-700">Hide candidate names</label>
+                          <p className="text-gray-500">Reviewers will see anonymous identifiers instead of names</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="hide-demographics"
+                            name="hide-demographics"
+                            type="checkbox"
+                            checked={blindReviewSettings.hideDemographics}
+                            onChange={(e) => setBlindReviewSettings({
+                              ...blindReviewSettings,
+                              hideDemographics: e.target.checked
+                            })}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label htmlFor="hide-demographics" className="font-medium text-gray-700">Hide demographic information</label>
+                          <p className="text-gray-500">Remove any demographic indicators from submissions</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="hide-education"
+                            name="hide-education"
+                            type="checkbox"
+                            checked={blindReviewSettings.hideEducation}
+                            onChange={(e) => setBlindReviewSettings({
+                              ...blindReviewSettings,
+                              hideEducation: e.target.checked
+                            })}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label htmlFor="hide-education" className="font-medium text-gray-700">Hide education details</label>
+                          <p className="text-gray-500">Remove school names and degree information</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="multiple-reviewers"
+                            name="multiple-reviewers"
+                            type="checkbox"
+                            checked={blindReviewSettings.multipleReviewers}
+                            onChange={(e) => setBlindReviewSettings({
+                              ...blindReviewSettings,
+                              multipleReviewers: e.target.checked
+                            })}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label htmlFor="multiple-reviewers" className="font-medium text-gray-700">Require multiple reviewers</label>
+                          <p className="text-gray-500">Each submission will be reviewed by at least 2 people</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <label htmlFor="min-reviewers" className="block text-sm font-medium text-gray-700">
+                        Minimum reviewers per submission
+                      </label>
+                      <select
+                        id="min-reviewers"
+                        name="min-reviewers"
+                        value={blindReviewSettings.minReviewers}
+                        onChange={(e) => setBlindReviewSettings({
+                          ...blindReviewSettings,
+                          minReviewers: parseInt(e.target.value)
+                        })}
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                      >
+                        <option value={2}>2 reviewers</option>
+                        <option value={3}>3 reviewers</option>
+                        <option value={4}>4 reviewers</option>
+                        <option value={5}>5 reviewers</option>
+                      </select>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleSaveBlindReviewSettings}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Save Settings
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
