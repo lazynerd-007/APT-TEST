@@ -5,6 +5,8 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Organization(models.Model):
@@ -37,7 +39,7 @@ class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         """Create and save a regular user."""
         if not email:
-            raise ValueError('Users must have an email address')
+            raise ValueError('The Email field must be set')
         
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
@@ -104,6 +106,9 @@ class CandidateProfile(models.Model):
     skills = models.JSONField(default=list)
     experience_years = models.PositiveIntegerField(default=0)
     education = models.JSONField(default=dict)
+    access_code = models.CharField(max_length=20, blank=True, null=True)
+    last_login_attempt = models.DateTimeField(blank=True, null=True)
+    login_attempts = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -121,4 +126,19 @@ class EmployerProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"Profile for {self.user.email}" 
+        return f"Profile for {self.user.email}"
+
+
+# Signal to create candidate profile when a user is created
+@receiver(post_save, sender=User)
+def create_candidate_profile(sender, instance, created, **kwargs):
+    if created and instance.is_candidate:
+        CandidateProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_candidate_profile(sender, instance, **kwargs):
+    if instance.is_candidate:
+        if not hasattr(instance, 'candidate_profile'):
+            CandidateProfile.objects.create(user=instance)
+        else:
+            instance.candidate_profile.save() 

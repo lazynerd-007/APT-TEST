@@ -18,21 +18,21 @@ const CandidateLogin = () => {
     setLoading(true);
 
     try {
-      // In a real app, this would call an API endpoint
+      // Simple validation
+      if (!email || !accessCode) {
+        throw new Error('Please provide your email and access code');
+      }
+      
+      // In a real app, this would call an API endpoint to verify the access code
       // For demo purposes, we'll just simulate a successful login
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Simple validation
-      if (!email || !password || !accessCode) {
-        throw new Error('Please fill in all fields');
-      }
-      
       // For demo, let's use a specific test account
-      if (email === 'candidate@example.com' && password === 'password' && accessCode === 'TEST123') {
+      if (email === 'candidate@example.com' && accessCode === 'TEST123') {
         // Successful login
         router.push('/candidates/dashboard');
       } else {
-        throw new Error('Invalid credentials or access code');
+        throw new Error('Invalid email or access code');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
