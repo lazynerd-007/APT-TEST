@@ -56,7 +56,7 @@ const CandidateLogin = () => {
           Candidate Login
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Enter your credentials and assessment access code
+          Access your assessment using the credentials sent to your email
         </p>
       </div>
 
@@ -212,6 +212,15 @@ const CandidateLogin = () => {
               Sign in to the admin dashboard
             </a>
           </Link>
+        </p>
+      </div>
+      
+      <div className="mt-2 text-center">
+        <p className="text-sm text-gray-600">
+          Haven't received an invitation?{' '}
+          <a href="mailto:contact@bluapt.com" className="font-medium text-blue-600 hover:text-blue-500">
+            Contact the hiring team
+          </a>
         </p>
       </div>
     </div>
