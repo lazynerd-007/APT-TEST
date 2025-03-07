@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_URL } from '../config';
 
-const API_URL = `${API_BASE_URL}/api/users`;
+const API_ENDPOINT = `${API_URL}/users`;
 
 export interface CandidateInvite {
   name: string;
@@ -34,7 +34,7 @@ const candidateService = {
   inviteCandidates: async (data: InviteRequest): Promise<InviteResponse> => {
     try {
       const response = await axios.post(
-        `${API_URL}/invite_candidates/`, 
+        `${API_ENDPOINT}/invite_candidates/`, 
         data,
         {
           headers: {
@@ -58,7 +58,7 @@ const candidateService = {
    */
   getCandidates: async () => {
     try {
-      const response = await axios.get(`${API_URL}?is_candidate=true`);
+      const response = await axios.get(`${API_ENDPOINT}?is_candidate=true`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -75,7 +75,7 @@ const candidateService = {
    */
   getCandidateById: async (id: string) => {
     try {
-      const response = await axios.get(`${API_URL}/${id}/`);
+      const response = await axios.get(`${API_ENDPOINT}/${id}/`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -93,7 +93,7 @@ const candidateService = {
    */
   verifyAccessCode: async (email: string, accessCode: string) => {
     try {
-      const response = await axios.post(`${API_URL}/verify_access_code/`, {
+      const response = await axios.post(`${API_ENDPOINT}/verify_access_code/`, {
         email,
         access_code: accessCode
       });

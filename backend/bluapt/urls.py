@@ -25,9 +25,11 @@ schema_view = get_schema_view(
 
 # API URL patterns
 api_v1_patterns = [
-    # Temporarily comment out problematic imports
+    # User management
+    path('users/', include('users.urls')),
+    
+    # Other API endpoints
     # path('auth/', include('users.urls.auth')),
-    # path('users/', include('users.urls.users')),
     # path('organizations/', include('users.urls.organizations')),
     # path('tests/', include('assessments.urls.tests')),
     # path('assessments/', include('assessments.urls.assessments')),
@@ -44,6 +46,9 @@ urlpatterns = [
     
     # API v1
     path('api/v1/', include(api_v1_patterns)),
+    
+    # Direct API routes for backward compatibility
+    path('api/users/', include('users.urls')),
     
     # OAuth2
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
