@@ -27,6 +27,7 @@ const InviteCandidate: React.FC<InviteCandidateProps> = ({ assessmentId, onSucce
     const fetchAssessments = async () => {
       try {
         setLoadingAssessments(true);
+        
         // Fetch real assessments from the API
         console.log('Fetching assessments...');
         const assessmentsData = await assessmentsService.getAssessmentsForInvite();

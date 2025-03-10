@@ -29,6 +29,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
   const [isAddingSkill, setIsAddingSkill] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [editingCategory, setEditingCategory] = useState<SkillCategory | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -36,7 +37,6 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     description: '',
     category: '',
     difficulty: 'beginner' as Skill['difficulty'],
-    tags: ''
   });
 
   // Category form state
@@ -50,22 +50,41 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [skillsData, categoriesData] = await Promise.all([
-          skillsService.getSkills(),
-          skillsService.getCategories()
-        ]);
         
-        // Ensure skills is always an array
-        setSkills(Array.isArray(skillsData) ? skillsData : []);
+        // Fetch skills and categories separately to better handle errors
+        try {
+          console.log('Fetching skills...');
+          const skillsData = await skillsService.getSkills();
+          console.log('Skills data received:', skillsData);
+          // Ensure skills is always an array
+          setSkills(Array.isArray(skillsData) ? skillsData : []);
+        } catch (skillError) {
+          console.error('Error fetching skills:', skillError);
+          setError(prev => prev ? `${prev}. Failed to load skills.` : 'Failed to load skills.');
+          setSkills([]);
+        }
         
-        // Ensure categories is always an array
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        try {
+          console.log('Fetching categories...');
+          const categoriesData = await skillsService.getCategories();
+          console.log('Categories data received:', categoriesData);
+          // Ensure categories is always an array
+          if (Array.isArray(categoriesData)) {
+            console.log(`Setting ${categoriesData.length} categories`);
+            setCategories(categoriesData);
+          } else {
+            console.warn('Categories data is not an array:', categoriesData);
+            setCategories([]);
+          }
+        } catch (categoryError) {
+          console.error('Error fetching skill categories:', categoryError);
+          setError(prev => prev ? `${prev}. Failed to load skill categories.` : 'Failed to load skill categories.');
+          setCategories([]);
+        }
         
-        setError(null);
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load skills and categories. Please try again later.');
-        
+        console.error('Error in fetchData:', err);
+        setError('An unexpected error occurred. Please try again later.');
         // Set empty arrays on error
         setSkills([]);
         setCategories([]);
@@ -85,7 +104,6 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         description: '',
         category: '',
         difficulty: 'beginner',
-        tags: ''
       });
     }
   }, [isAddingSkill, editingSkill]);
@@ -98,7 +116,6 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         description: editingSkill.description,
         category: editingSkill.category,
         difficulty: editingSkill.difficulty,
-        tags: editingSkill.tags.join(', ')
       });
     }
   }, [editingSkill]);
@@ -120,45 +137,70 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     e.preventDefault();
     
     try {
+      // Validate required fields
+      if (!formData.name || !formData.description || !formData.category) {
+        setError('Please fill in all required fields');
+        return;
+      }
+      
       const skillData = {
         name: formData.name,
         description: formData.description,
         category: formData.category,
-        difficulty: formData.difficulty,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+        difficulty: formData.difficulty
       };
 
-      if (editingSkill) {
-        // Update existing skill
-        const updatedSkill = await skillsService.updateSkill(editingSkill.id, skillData);
-        
-        // Update local state
-        setSkills(Array.isArray(skills) ? skills.map(skill =>
-          skill.id === editingSkill.id ? { ...skill, ...updatedSkill } : skill
-        ) : []);
-        
-        if (onSkillUpdated) {
-          onSkillUpdated(updatedSkill);
+      console.log('Submitting skill data:', skillData);
+
+      try {
+        if (editingSkill) {
+          // Update existing skill
+          const updatedSkill = await skillsService.updateSkill(editingSkill.id, skillData);
+          
+          // Update local state
+          setSkills(Array.isArray(skills) ? skills.map(skill =>
+            skill.id === editingSkill.id ? { ...skill, ...updatedSkill } : skill
+          ) : []);
+          
+          if (onSkillUpdated) {
+            onSkillUpdated(updatedSkill);
+          }
+          
+          setEditingSkill(null);
+        } else {
+          // Create new skill
+          const newSkill = await skillsService.createSkill(skillData);
+          
+          // Update local state
+          setSkills(Array.isArray(skills) ? [...skills, newSkill] : [newSkill]);
+          
+          if (onSkillCreated) {
+            onSkillCreated(newSkill);
+          }
         }
         
-        setEditingSkill(null);
-      } else {
-        // Create new skill
-        const newSkill = await skillsService.createSkill(skillData);
+        // Reset form
+        setFormData({
+          name: '',
+          description: '',
+          category: '',
+          difficulty: 'beginner',
+        });
         
-        // Update local state
-        setSkills(Array.isArray(skills) ? [...skills, newSkill] : [newSkill]);
-        
-        if (onSkillCreated) {
-          onSkillCreated(newSkill);
+        setIsAddingSkill(false);
+        setError(null);
+      } catch (err) {
+        console.error('API Error:', err);
+        if (err.response && err.response.data) {
+          // Display more detailed error message from the API
+          setError(`Failed to save skill: ${JSON.stringify(err.response.data)}`);
+        } else {
+          setError(`Failed to save skill: ${err.message || 'Unknown error'}`);
         }
       }
-      
-      setIsAddingSkill(false);
-      setError(null);
     } catch (err) {
-      console.error('Error saving skill:', err);
-      setError('Failed to save skill. Please try again.');
+      console.error('Error in form submission:', err);
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -167,18 +209,50 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     e.preventDefault();
     
     try {
-      // Create new category
-      const newCategory = await skillsService.createCategory(categoryFormData);
+      // Validate required fields
+      if (!categoryFormData.name) {
+        setError('Category name is required');
+        return;
+      }
       
-      // Update local state
-      setCategories([...categories, newCategory]);
+      console.log('Submitting category data:', categoryFormData);
       
-      setIsAddingCategory(false);
-      setCategoryFormData({ name: '', description: '' });
-      setError(null);
+      try {
+        if (editingCategory) {
+          // Update existing category
+          const updatedCategory = await skillsService.updateCategory(editingCategory.id, categoryFormData);
+          
+          // Update local state
+          setCategories(Array.isArray(categories) 
+            ? categories.map(category => category.id === editingCategory.id ? updatedCategory : category) 
+            : [updatedCategory]
+          );
+          
+          setEditingCategory(null);
+        } else {
+          // Create new category
+          const newCategory = await skillsService.createCategory(categoryFormData);
+          
+          // Update local state
+          setCategories(Array.isArray(categories) ? [...categories, newCategory] : [newCategory]);
+        }
+        
+        // Reset form
+        setCategoryFormData({ name: '', description: '' });
+        setIsAddingCategory(false);
+        setError(null);
+      } catch (err) {
+        console.error('API Error:', err);
+        if (err.response && err.response.data) {
+          // Display more detailed error message from the API
+          setError(`Failed to save category: ${JSON.stringify(err.response.data)}`);
+        } else {
+          setError(`Failed to save category: ${err.message || 'Unknown error'}`);
+        }
+      }
     } catch (err) {
-      console.error('Error saving category:', err);
-      setError('Failed to save category. Please try again.');
+      console.error('Error in form submission:', err);
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -202,6 +276,25 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     } catch (err) {
       console.error('Error deleting skill:', err);
       setError('Failed to delete skill. Please try again.');
+    }
+  };
+
+  // Handle category deletion
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this category? This will also delete all skills in this category.')) {
+      return;
+    }
+    
+    try {
+      await skillsService.deleteCategory(id);
+      
+      // Update local state
+      setCategories(Array.isArray(categories) ? categories.filter(category => category.id !== id) : []);
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      setError('Failed to delete category. Please try again.');
     }
   };
 
@@ -231,21 +324,20 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-soft p-6">
-      {/* Header with title and action buttons */}
+    <div className="bg-white shadow-md rounded-lg p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Skill Management</h2>
         <div className="flex space-x-2">
           <button
             onClick={() => setIsAddingCategory(true)}
-            className="flex items-center px-4 py-2 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 transition-colors"
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
-            <FaTags className="mr-2" />
+            <FaPlus className="mr-2" />
             Add Category
           </button>
           <button
             onClick={() => setIsAddingSkill(true)}
-            className="flex items-center px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <FaPlus className="mr-2" />
             Add Skill
@@ -253,153 +345,219 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         </div>
       </div>
 
-      {/* Error message */}
       {error && (
-        <div className="mb-6 bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded relative" role="alert">
-          <div className="flex items-center">
-            <span className="mr-2">⚠️</span>
-            <span>{error}</span>
-          </div>
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
-        <div className="relative flex-grow">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search skills..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      {/* Categories Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold text-gray-700 mb-4">Skill Categories</h3>
         
-        <div className="flex space-x-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaTags className="text-gray-400" />
-            </div>
-            <select
-              id="category-filter"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {Array.isArray(categories) && categories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaFilter className="text-gray-400" />
-            </div>
-            <select
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
-            >
-              <option value="">All Difficulties</option>
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-              <option value="expert">Expert</option>
-            </select>
-          </div>
+        {/* Categories Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category Name
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-4 text-center">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : Array.isArray(categories) && categories.length > 0 ? (
+                categories.map(category => (
+                  <tr key={category.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-500">{category.description}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex space-x-3 justify-end">
+                        <button
+                          onClick={() => {
+                            setCategoryFormData({
+                              name: category.name,
+                              description: category.description
+                            });
+                            setEditingCategory(category);
+                            setIsAddingCategory(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
+                    No categories available. Add your first category!
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Skills Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Skill
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Difficulty
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tags
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredSkills.length > 0 ? (
-              filteredSkills.map((skill) => (
-                <tr key={skill.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <div className="text-sm font-medium text-gray-900">{skill.name}</div>
-                      <div className="text-sm text-gray-500">{skill.description}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {skill.category_name || getCategoryName(skill.category)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      skill.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
-                      skill.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                      skill.difficulty === 'advanced' ? 'bg-orange-100 text-orange-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {skill.difficulty.charAt(0).toUpperCase() + skill.difficulty.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-wrap gap-1">
-                      {skill.tags.map((tag, index) => (
-                        <span key={index} className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => setEditingSkill(skill)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSkill(skill.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <FaTrash />
-                    </button>
+      {/* Skills Section */}
+      <div>
+        <h3 className="text-xl font-semibold text-gray-700 mb-4">Skills</h3>
+        
+        {/* Search and Filter */}
+        <div className="mb-4">
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
+            <div className="relative flex-grow">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search skills..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex space-x-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaTags className="text-gray-400" />
+                </div>
+                <select
+                  id="category-filter"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">All Categories</option>
+                  {Array.isArray(categories) && categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaFilter className="text-gray-400" />
+                </div>
+                <select
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  value={selectedDifficulty}
+                  onChange={(e) => setSelectedDifficulty(e.target.value)}
+                >
+                  <option value="">All Difficulties</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Skills Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Skill
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Difficulty
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredSkills.length > 0 ? (
+                filteredSkills.map((skill) => (
+                  <tr key={skill.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900">{skill.name}</div>
+                        <div className="text-sm text-gray-500">{skill.description}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {skill.category_name || getCategoryName(skill.category)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        skill.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
+                        skill.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                        skill.difficulty === 'advanced' ? 'bg-orange-100 text-orange-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {skill.difficulty.charAt(0).toUpperCase() + skill.difficulty.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => setEditingSkill(skill)}
+                        className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSkill(skill.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                    {searchTerm || selectedCategory || selectedDifficulty 
+                      ? 'No skills found matching your criteria' 
+                      : 'No skills available. Add your first skill!'}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                  {searchTerm || selectedCategory || selectedDifficulty 
-                    ? 'No skills found matching your criteria' 
-                    : 'No skills available. Add your first skill!'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add/Edit Skill Modal */}
@@ -478,20 +636,6 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
                 </select>
               </div>
               
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags (comma separated)
-                </label>
-                <input
-                  type="text"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                  placeholder="e.g. frontend, javascript, react"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-              
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -519,7 +663,9 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
       {isAddingCategory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Add New Category</h3>
+            <h3 className="text-xl font-bold mb-4">
+              {editingCategory ? 'Edit Category' : 'Add New Category'}
+            </h3>
             
             <form onSubmit={handleCategorySubmit}>
               <div className="mb-4">
@@ -546,23 +692,26 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
                   onChange={handleCategoryInputChange}
                   rows={3}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  required
                 />
               </div>
               
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => setIsAddingCategory(false)}
+                  onClick={() => {
+                    setIsAddingCategory(false);
+                    setEditingCategory(null);
+                    setCategoryFormData({ name: '', description: '' });
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-secondary-600 hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 >
-                  Add Category
+                  {editingCategory ? 'Update Category' : 'Add Category'}
                 </button>
               </div>
             </form>

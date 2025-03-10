@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { API_URL, API_BASE_URL } from '../config';
 import apiClient from './apiClient';
+import { API_URL, API_BASE_URL } from '../config';
 
 // Create a separate axios instance for public endpoints
 const publicApiClient = axios.create({
@@ -284,9 +284,12 @@ const assessmentsService = {
   // Get assessments for inviting candidates
   getAssessmentsForInvite: async () => {
     try {
-      const response = await apiClient.get('/assessments/', {
+      console.log('Fetching assessments for invite...');
+      // Use publicApiClient for this endpoint to avoid authentication issues
+      const response = await publicApiClient.get('/assessments/', {
         params: { is_active: true }
       });
+      console.log('Assessment API response:', response);
       return response.data;
     } catch (error) {
       console.error('Error fetching assessments for invite:', error);

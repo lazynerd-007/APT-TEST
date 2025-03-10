@@ -4,7 +4,7 @@ Views for the assessments app.
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
     Assessment, 
@@ -33,8 +33,8 @@ from skills.models import Skill
 class AssessmentViewSet(viewsets.ModelViewSet):
     """ViewSet for the Assessment model."""
     queryset = Assessment.objects.all()
-    # For development purposes, allow unauthenticated access
-    permission_classes = []  # Empty list means no permission required
+    # Explicitly set permission_classes to AllowAny to disable authentication
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['created_by', 'organization', 'is_active']
     search_fields = ['title', 'description']
@@ -49,6 +49,10 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         """Filter assessments by organization."""
         queryset = super().get_queryset()
         user = self.request.user
+        
+        # Skip organization filtering if user is not authenticated
+        if not user.is_authenticated:
+            return queryset
         
         # Filter by organization if user is not admin
         if not user.is_staff:
@@ -209,8 +213,8 @@ class CandidateAssessmentViewSet(viewsets.ModelViewSet):
     """ViewSet for the CandidateAssessment model."""
     queryset = CandidateAssessment.objects.all()
     serializer_class = CandidateAssessmentSerializer
-    # For development purposes, allow unauthenticated access
-    permission_classes = []  # Empty list means no permission required
+    # Explicitly set permission_classes to AllowAny to disable authentication
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['candidate', 'assessment', 'status']
     search_fields = ['assessment__title', 'candidate__email']
@@ -220,6 +224,10 @@ class CandidateAssessmentViewSet(viewsets.ModelViewSet):
         """Filter candidate assessments by user role."""
         queryset = super().get_queryset()
         user = self.request.user
+        
+        # Skip filtering if user is not authenticated
+        if not user.is_authenticated:
+            return queryset
         
         # If user is a candidate, only show their assessments
         if not user.is_staff and user.role == 'candidate':

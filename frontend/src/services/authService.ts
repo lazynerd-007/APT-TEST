@@ -43,8 +43,8 @@ const authService = {
       if (VALID_USERS.includes(email.toLowerCase())) {
         console.log(`Login successful for ${email}`);
         
-        // Use a consistent token for development
-        const token = 'development-token-123456';
+        // Use a token format that will be accepted by DevelopmentAuthentication
+        const token = 'dev-token-' + Math.random().toString(36).substring(2, 15);
         
         // Return user info
         return {

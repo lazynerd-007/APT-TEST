@@ -34,15 +34,32 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [skillsData, categoriesData] = await Promise.all([
-          skillsService.getSkills(),
-          skillsService.getCategories()
-        ]);
-        setSkills(skillsData);
-        setCategories(categoriesData);
-        setError(null);
+        
+        // Fetch skills and categories separately to better handle errors
+        try {
+          console.log('Fetching skills...');
+          const skillsData = await skillsService.getSkills();
+          // Ensure skills is always an array
+          setSkills(Array.isArray(skillsData) ? skillsData : []);
+        } catch (skillError) {
+          console.error('Error fetching skills:', skillError);
+          setError('Failed to load skills. Please try again later.');
+          setSkills([]);
+        }
+        
+        try {
+          console.log('Fetching categories...');
+          const categoriesData = await skillsService.getCategories();
+          // Ensure categories is always an array
+          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        } catch (categoryError) {
+          console.error('Error fetching skill categories:', categoryError);
+          setError('Failed to load skill categories. Please try again later.');
+          setCategories([]);
+        }
+        
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error in fetchData:', err);
         setError('Failed to load skills and categories. Please try again later.');
       } finally {
         setLoading(false);

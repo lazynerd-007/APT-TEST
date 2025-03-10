@@ -2,9 +2,11 @@
 Skills models for the BLUAPT platform.
 """
 import uuid
+import logging
 from django.db import models
 from django.utils import timezone
 
+logger = logging.getLogger(__name__)
 
 class SkillCategory(models.Model):
     """Category model for organizing skills."""
@@ -44,7 +46,6 @@ class Skill(models.Model):
         choices=DIFFICULTY_CHOICES,
         default='intermediate'
     )
-    tags = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -53,17 +54,4 @@ class Skill(models.Model):
         unique_together = ["name", "category"]
 
     def __str__(self):
-        return f"{self.name} ({self.get_difficulty_display()})"
-
-    def get_tags_list(self):
-        """Return tags as a list."""
-        if not self.tags:
-            return []
-        return [tag.strip() for tag in self.tags.split(',')]
-
-    def set_tags_list(self, tags_list):
-        """Set tags from a list."""
-        if not tags_list:
-            self.tags = ""
-        else:
-            self.tags = ",".join(tags_list) 
+        return f"{self.name} ({self.get_difficulty_display()})" 

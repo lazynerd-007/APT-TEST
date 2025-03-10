@@ -2,8 +2,10 @@
 Serializers for the skills app.
 """
 from rest_framework import serializers
+import logging
 from .models import Skill, SkillCategory
 
+logger = logging.getLogger(__name__)
 
 class SkillCategorySerializer(serializers.ModelSerializer):
     """Serializer for skill categories."""
@@ -22,21 +24,6 @@ class SkillSerializer(serializers.ModelSerializer):
         model = Skill
         fields = [
             'id', 'name', 'description', 'category', 'category_name',
-            'difficulty', 'tags', 'created_at', 'updated_at'
+            'difficulty', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def validate_tags(self, value):
-        """Validate that tags are properly formatted."""
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Tags must be a list of strings")
-        
-        # Ensure all tags are strings and not empty
-        for tag in value:
-            if not isinstance(tag, str) or not tag.strip():
-                raise serializers.ValidationError("All tags must be non-empty strings")
-        
-        # Remove duplicates and whitespace
-        cleaned_tags = list(set([tag.strip().lower() for tag in value if tag.strip()]))
-        
-        return cleaned_tags 
+        read_only_fields = ['id', 'created_at', 'updated_at'] 
