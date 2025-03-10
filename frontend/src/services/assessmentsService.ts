@@ -155,9 +155,10 @@ const assessmentsService = {
     try {
       console.log('Calling getAssessments with params:', params);
       // Use publicApiClient for development purposes
-      const response = await publicApiClient.get('/assessments/', { params });
+      const response = await publicApiClient.get('/assessments/assessments/', { params });
       console.log('Assessment API response:', response);
-      return response.data;
+      // Return the results array from the paginated response
+      return response.data.results || [];
     } catch (error) {
       console.error('Error in getAssessments:', error);
       if (axios.isAxiosError(error) && error.response) {
@@ -168,32 +169,32 @@ const assessmentsService = {
   },
 
   getAssessment: async (id: string) => {
-    const response = await apiClient.get(`/assessments/${id}/`);
+    const response = await apiClient.get(`/assessments/assessments/${id}/`);
     return response.data;
   },
 
   createAssessment: async (assessment: AssessmentCreateUpdate) => {
-    const response = await apiClient.post(`/assessments/`, assessment);
+    const response = await apiClient.post(`/assessments/assessments/`, assessment);
     return response.data;
   },
 
   updateAssessment: async (id: string, assessment: AssessmentCreateUpdate) => {
-    const response = await apiClient.put(`/assessments/${id}/`, assessment);
+    const response = await apiClient.put(`/assessments/assessments/${id}/`, assessment);
     return response.data;
   },
 
   deleteAssessment: async (id: string) => {
-    await apiClient.delete(`/assessments/${id}/`);
+    await apiClient.delete(`/assessments/assessments/${id}/`);
   },
 
   // Assessment Skills
   getAssessmentSkills: async (assessmentId: string) => {
-    const response = await apiClient.get(`/assessments/${assessmentId}/skills/`);
+    const response = await apiClient.get(`/assessments/assessments/${assessmentId}/skills/`);
     return response.data;
   },
 
   addSkillToAssessment: async (assessmentId: string, skillId: string, importance: string = 'secondary') => {
-    const response = await apiClient.post(`/assessments/${assessmentId}/add_skill/`, {
+    const response = await apiClient.post(`/assessments/assessments/${assessmentId}/add_skill/`, {
       skill_id: skillId,
       importance
     });
@@ -201,67 +202,112 @@ const assessmentsService = {
   },
 
   removeSkillFromAssessment: async (assessmentId: string, skillId: string) => {
-    await apiClient.delete(`/assessments/${assessmentId}/remove_skill/`, {
+    await apiClient.delete(`/assessments/assessments/${assessmentId}/remove_skill/`, {
       data: { skill_id: skillId }
     });
   },
 
   // Tests
   getTests: async (params?: any) => {
-    const response = await apiClient.get(`/tests/`, { params });
+    const response = await apiClient.get(`/assessments/tests/`, { params });
     return response.data;
   },
 
   getTest: async (id: string) => {
-    const response = await apiClient.get(`/tests/${id}/`);
+    const response = await apiClient.get(`/assessments/tests/${id}/`);
     return response.data;
   },
 
   createTest: async (test: any) => {
-    const response = await apiClient.post(`/tests/`, test);
+    const response = await apiClient.post(`/assessments/tests/`, test);
     return response.data;
   },
 
   updateTest: async (id: string, test: any) => {
-    const response = await apiClient.put(`/tests/${id}/`, test);
+    const response = await apiClient.put(`/assessments/tests/${id}/`, test);
     return response.data;
   },
 
   deleteTest: async (id: string) => {
-    await apiClient.delete(`/tests/${id}/`);
+    await apiClient.delete(`/assessments/tests/${id}/`);
   },
 
   // Questions
   getQuestions: async (params?: any) => {
-    const response = await apiClient.get(`/questions/`, { params });
+    const response = await apiClient.get(`/assessments/questions/`, { params });
+    return response.data;
+  },
+
+  getQuestion: async (id: string) => {
+    const response = await apiClient.get(`/assessments/questions/${id}/`);
+    return response.data;
+  },
+
+  createQuestion: async (question: any) => {
+    const response = await apiClient.post(`/assessments/questions/`, question);
+    return response.data;
+  },
+
+  updateQuestion: async (id: string, question: any) => {
+    const response = await apiClient.put(`/assessments/questions/${id}/`, question);
+    return response.data;
+  },
+
+  deleteQuestion: async (id: string) => {
+    await apiClient.delete(`/assessments/questions/${id}/`);
+  },
+
+  uploadQuestionsCSV: async (file: File, testId: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('test_id', testId);
+    
+    const response = await apiClient.post(`/assessments/questions/upload-csv/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
     return response.data;
   },
 
   getTestQuestions: async (testId: string) => {
-    const response = await apiClient.get(`/tests/${testId}/questions/`);
+    const response = await apiClient.get(`/assessments/tests/${testId}/questions/`);
     return response.data;
   },
 
   // Candidate Assessments
   getCandidateAssessments: async (params?: any) => {
-    const response = await apiClient.get(`/candidate-assessments/`, { params });
+    const response = await apiClient.get(`/assessments/candidate-assessments/`, { params });
     return response.data;
   },
 
   getCandidateAssessment: async (id: string) => {
-    const response = await apiClient.get(`/candidate-assessments/${id}/`);
+    const response = await apiClient.get(`/assessments/candidate-assessments/${id}/`);
     return response.data;
   },
 
-  // Candidate Tests
-  getCandidateTests: async (candidateAssessmentId: string) => {
-    const response = await apiClient.get(`/candidate-assessments/${candidateAssessmentId}/tests/`);
+  createCandidateAssessment: async (candidateAssessment: any) => {
+    const response = await apiClient.post(`/assessments/candidate-assessments/`, candidateAssessment);
     return response.data;
   },
 
-  // Skill Scores
-  getCandidateSkillScores: async (candidateAssessmentId: string) => {
-    const response = await apiClient.get(`/candidate-assessments/${candidateAssessmentId}/skill_scores/`);
+  updateCandidateAssessment: async (id: string, candidateAssessment: any) => {
+    const response = await apiClient.put(`/assessments/candidate-assessments/${id}/`, candidateAssessment);
+    return response.data;
+  },
+
+  deleteCandidateAssessment: async (id: string) => {
+    await apiClient.delete(`/assessments/candidate-assessments/${id}/`);
+  },
+
+  getCandidateAssessmentTests: async (candidateAssessmentId: string) => {
+    const response = await apiClient.get(`/assessments/candidate-assessments/${candidateAssessmentId}/tests/`);
+    return response.data;
+  },
+
+  getCandidateAssessmentSkillScores: async (candidateAssessmentId: string) => {
+    const response = await apiClient.get(`/assessments/candidate-assessments/${candidateAssessmentId}/skill_scores/`);
     return response.data;
   },
 
@@ -298,6 +344,33 @@ const assessmentsService = {
       }
       throw error;
     }
+  },
+
+  // Candidate Tests
+  getCandidateTests: async (params?: any) => {
+    const response = await apiClient.get(`/assessments/candidate-tests/`, { params });
+    return response.data;
+  },
+
+  getCandidateTest: async (id: string) => {
+    const response = await apiClient.get(`/assessments/candidate-tests/${id}/`);
+    return response.data;
+  },
+
+  updateCandidateTest: async (id: string, candidateTest: any) => {
+    const response = await apiClient.put(`/assessments/candidate-tests/${id}/`, candidateTest);
+    return response.data;
+  },
+
+  // Skill Scores
+  getSkillScores: async (params?: any) => {
+    const response = await apiClient.get(`/assessments/skill-scores/`, { params });
+    return response.data;
+  },
+
+  getSkillScore: async (id: string) => {
+    const response = await apiClient.get(`/assessments/skill-scores/${id}/`);
+    return response.data;
   }
 };
 

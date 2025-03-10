@@ -19,6 +19,8 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
   const [categories, setCategories] = useState<SkillCategory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [skillsLoading, setSkillsLoading] = useState<boolean>(true);
+  const [categoriesLoading, setCategoriesLoading] = useState<boolean>(true);
 
   // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,56 +47,119 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     description: ''
   });
 
-  // Fetch skills and categories on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch skills and categories separately to better handle errors
-        try {
-          console.log('Fetching skills...');
-          const skillsData = await skillsService.getSkills();
-          console.log('Skills data received:', skillsData);
-          // Ensure skills is always an array
-          setSkills(Array.isArray(skillsData) ? skillsData : []);
-        } catch (skillError) {
-          console.error('Error fetching skills:', skillError);
-          setError(prev => prev ? `${prev}. Failed to load skills.` : 'Failed to load skills.');
-          setSkills([]);
-        }
-        
-        try {
-          console.log('Fetching categories...');
-          const categoriesData = await skillsService.getCategories();
-          console.log('Categories data received:', categoriesData);
-          // Ensure categories is always an array
-          if (Array.isArray(categoriesData)) {
-            console.log(`Setting ${categoriesData.length} categories`);
-            setCategories(categoriesData);
-          } else {
-            console.warn('Categories data is not an array:', categoriesData);
-            setCategories([]);
-          }
-        } catch (categoryError) {
-          console.error('Error fetching skill categories:', categoryError);
-          setError(prev => prev ? `${prev}. Failed to load skill categories.` : 'Failed to load skill categories.');
-          setCategories([]);
-        }
-        
-      } catch (err) {
-        console.error('Error in fetchData:', err);
-        setError('An unexpected error occurred. Please try again later.');
-        // Set empty arrays on error
-        setSkills([]);
+  // Function to fetch skills with option for forced refresh
+  const fetchSkills = React.useCallback(async (forceRefresh = false) => {
+    try {
+      setSkillsLoading(true);
+      setError(prev => prev?.replace(/Failed to load skills\.?/, '').trim() || null);
+      
+      console.log(`Fetching skills${forceRefresh ? ' (forced refresh)' : ''}...`);
+      const skillsData = await skillsService.getSkills({}, forceRefresh);
+      console.log('Skills data received:', skillsData);
+      
+      // Ensure skills is always an array
+      setSkills(Array.isArray(skillsData) ? skillsData : []);
+      return true;
+    } catch (skillError) {
+      console.error('Error fetching skills:', skillError);
+      setError(prev => {
+        const baseError = prev ? prev : '';
+        const newError = 'Failed to load skills. ' + (skillError.message || '');
+        return baseError ? `${baseError}. ${newError}` : newError;
+      });
+      setSkills([]);
+      return false;
+    } finally {
+      setSkillsLoading(false);
+    }
+  }, [setSkills, setError, setSkillsLoading]);
+
+  // Function to fetch categories
+  const fetchCategories = React.useCallback(async () => {
+    try {
+      setCategoriesLoading(true);
+      setError(prev => prev?.replace(/Failed to load skill categories\.?/, '').trim() || null);
+      
+      console.log('Fetching categories...');
+      const categoriesData = await skillsService.getCategories();
+      console.log('Categories data received:', categoriesData);
+      
+      // Ensure categories is always an array
+      if (Array.isArray(categoriesData)) {
+        console.log(`Setting ${categoriesData.length} categories`);
+        setCategories(categoriesData);
+      } else {
+        console.warn('Categories data is not an array:', categoriesData);
         setCategories([]);
-      } finally {
-        setLoading(false);
+      }
+      return true;
+    } catch (categoryError) {
+      console.error('Error fetching skill categories:', categoryError);
+      setError(prev => {
+        const baseError = prev ? prev : '';
+        const newError = 'Failed to load skill categories. ' + (categoryError.message || '');
+        return baseError ? `${baseError}. ${newError}` : newError;
+      });
+      setCategories([]);
+      return false;
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, [setCategories, setError, setCategoriesLoading]);
+
+  // Fetch skills and categories together
+  const fetchData = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch both resources concurrently
+      const results = await Promise.allSettled([
+        fetchSkills(),
+        fetchCategories()
+      ]);
+      
+      // If both failed, set a general error
+      if (results[0].status === 'rejected' && results[1].status === 'rejected') {
+        setError('Failed to load data. Please check your connection and try again.');
+      }
+    } catch (err) {
+      console.error('Error in fetchData:', err);
+      setError('An unexpected error occurred. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchSkills, fetchCategories]);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Refresh data when page becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !loading) {
+        console.log('Page became visible - refreshing data');
+        fetchSkills(true);
       }
     };
 
-    fetchData();
-  }, []);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh after component has been mounted for a short while
+    const refreshTimer = setTimeout(() => {
+      if (!loading) {
+        console.log('Delayed refresh to ensure data consistency');
+        fetchSkills(true);
+      }
+    }, 2000);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(refreshTimer);
+    };
+  }, [loading, fetchSkills]);
 
   // Reset form when closing
   useEffect(() => {
@@ -177,6 +242,14 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
           if (onSkillCreated) {
             onSkillCreated(newSkill);
           }
+          
+          // Force refresh the skills list to ensure we have the latest data
+          console.log('Refreshing skills list after create...');
+          setTimeout(() => {
+            fetchSkills(true).catch(err => {
+              console.error('Error refreshing skills after create:', err);
+            });
+          }, 500); // Small delay to allow backend to process
         }
         
         // Reset form
@@ -191,6 +264,34 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         setError(null);
       } catch (err) {
         console.error('API Error:', err);
+        
+        // Check for authentication errors
+        if (err.message && typeof err.message === 'string') {
+          if (err.message.includes('Authentication failed') || 
+              err.message.includes('Authentication required')) {
+            // Display a more user-friendly message for auth errors
+            setError(`${err.message} Please try logging out and logging back in to refresh your session.`);
+            
+            // Show a logout link
+            const logoutLink = document.createElement('a');
+            logoutLink.href = '/logout';
+            logoutLink.innerText = 'Logout';
+            logoutLink.className = 'text-blue-600 hover:underline ml-2';
+            
+            // Find the error message element and append the link
+            setTimeout(() => {
+              const errorElement = document.querySelector('.error-message');
+              if (errorElement) {
+                const span = document.createElement('span');
+                span.innerHTML = ' <a href="/logout" class="text-blue-600 hover:underline">Logout</a>';
+                errorElement.appendChild(span);
+              }
+            }, 100);
+            
+            return;
+          }
+        }
+        
         if (err.response && err.response.data) {
           // Display more detailed error message from the API
           setError(`Failed to save skill: ${JSON.stringify(err.response.data)}`);
@@ -199,8 +300,8 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         }
       }
     } catch (err) {
-      console.error('Error in form submission:', err);
-      setError('An unexpected error occurred. Please try again.');
+      console.error('Form submission error:', err);
+      setError(`An unexpected error occurred: ${err.message}`);
     }
   };
 
@@ -300,10 +401,18 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
 
   // Filter skills based on search and filters
   const filteredSkills = Array.isArray(skills) ? skills.filter(skill => {
+    // Check if skill has all required properties
+    if (!skill || typeof skill !== 'object') {
+      console.warn('Invalid skill object in filter:', skill);
+      return false;
+    }
+    
     const matchesSearch = 
-      skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      skill.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      (skill.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (skill.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (Array.isArray(skill.tags) && skill.tags.some(tag => 
+        (tag?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      ));
     
     const matchesCategory = selectedCategory ? skill.category === selectedCategory : true;
     const matchesDifficulty = selectedDifficulty ? skill.difficulty === selectedDifficulty : true;
@@ -346,8 +455,53 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6 error-message">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg className="h-5 w-5 text-red-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-1 text-sm text-red-700">{error}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {error.includes('Failed to load skills') && (
+                  <button 
+                    onClick={() => fetchSkills(true)}
+                    disabled={skillsLoading}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    {skillsLoading ? 'Loading Skills...' : 'Retry Loading Skills'}
+                  </button>
+                )}
+                {error.includes('Failed to load skill categories') && (
+                  <button 
+                    onClick={() => fetchCategories()}
+                    disabled={categoriesLoading}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    {categoriesLoading ? 'Loading Categories...' : 'Retry Loading Categories'}
+                  </button>
+                )}
+                <button 
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  {loading ? 'Loading...' : 'Retry All'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && !error && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
+          <span className="ml-2 text-gray-600">Loading skills and categories...</span>
         </div>
       )}
 
@@ -428,7 +582,28 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
 
       {/* Skills Section */}
       <div>
-        <h3 className="text-xl font-semibold text-gray-700 mb-4">Skills</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Skills</h2>
+          <button
+            onClick={() => fetchSkills(true)}
+            disabled={skillsLoading}
+            className="flex items-center px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 transition-colors"
+          >
+            {skillsLoading ? (
+              <>
+                <span className="mr-2 h-4 w-4 border-2 border-t-blue-600 border-r-blue-600 border-b-transparent border-l-transparent rounded-full animate-spin"></span>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Skills
+              </>
+            )}
+          </button>
+        </div>
         
         {/* Search and Filter */}
         <div className="mb-4">

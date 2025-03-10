@@ -179,21 +179,16 @@ OAUTH2_PROVIDER = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOW_ALL_ORIGINS = True  # Enable this for development
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://localhost:3003',
-    'http://localhost:3004',
-    'http://localhost:3005',
+    'http://localhost:3000',  # Frontend development server
+    'http://localhost:3001',  # Alternative port if 3000 is in use
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
-    'http://127.0.0.1:3002',
-    'http://127.0.0.1:3003',
-    'http://127.0.0.1:3004',
-    'http://127.0.0.1:3005',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
 ]
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -203,6 +198,8 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+
+# Ensure these specific headers are allowed
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -213,12 +210,20 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-postmark-api-key',
+    'cache-control',
+    'pragma',
+    'expires'
+]
+
+# Ensure the response includes necessary headers
+CORS_EXPOSE_HEADERS = [
+    'access-control-allow-origin',
+    'access-control-allow-credentials',
+    'content-type',
 ]
 
 # For development, allow all origins
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True  # This is now set above
 
 # Celery settings
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')

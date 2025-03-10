@@ -1,10 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
 import { FaSignOutAlt, FaUser } from 'react-icons/fa';
+import skillsService from '../../services/skillsService';
+import assessmentsService from '../../services/assessmentsService';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const [skillsCount, setSkillsCount] = useState<number>(0);
+  const [assessmentsCount, setAssessmentsCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch skills count
+        const skills = await skillsService.getSkills();
+        if (Array.isArray(skills)) {
+          setSkillsCount(skills.length);
+        }
+        
+        // Fetch assessments count
+        const assessments = await assessmentsService.getAssessments();
+        if (Array.isArray(assessments)) {
+          setAssessmentsCount(assessments.length);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -36,13 +67,17 @@ export default function Dashboard() {
             {/* Quick Stats */}
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <h3 className="text-lg font-semibold text-blue-700 mb-2">Skills</h3>
-              <p className="text-3xl font-bold text-blue-800">12</p>
+              <p className="text-3xl font-bold text-blue-800">
+                {loading ? "..." : skillsCount}
+              </p>
               <p className="text-sm text-blue-600 mt-1">Active skills in the system</p>
             </div>
             
             <div className="bg-green-50 p-4 rounded-lg border border-green-100">
               <h3 className="text-lg font-semibold text-green-700 mb-2">Assessments</h3>
-              <p className="text-3xl font-bold text-green-800">5</p>
+              <p className="text-3xl font-bold text-green-800">
+                {loading ? "..." : assessmentsCount}
+              </p>
               <p className="text-sm text-green-600 mt-1">Published assessments</p>
             </div>
             

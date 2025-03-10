@@ -45,6 +45,21 @@ const getCSRFToken = () => {
   return null;
 };
 
+// Function to get auth token from storage
+const getAuthToken = () => {
+  try {
+    const storage = getLocalStorage();
+    const authData = storage.getItem('bluapt_auth');
+    if (!authData) return null;
+    
+    const parsed = JSON.parse(authData);
+    return parsed.token || null;
+  } catch (error) {
+    console.error('Error retrieving auth token:', error);
+    return null;
+  }
+};
+
 // Add a request interceptor
 apiClient.interceptors.request.use(
   (config) => {
@@ -55,20 +70,12 @@ apiClient.interceptors.request.use(
     }
     
     // Add auth token if available
-    const storage = getLocalStorage();
-    const authData = storage.getItem('bluapt_auth');
-    if (authData) {
-      try {
-        const { token } = JSON.parse(authData);
-        if (token) {
-          // Use the correct token format for Django REST framework TokenAuthentication
-          config.headers['Authorization'] = `Token ${token}`;
-          console.log('Added token to request:', token);
-          console.log('Request headers:', config.headers);
-        }
-      } catch (error) {
-        console.error('Error parsing auth data:', error);
-      }
+    const token = getAuthToken();
+    if (token) {
+      // Always use Bearer token format which is more universally accepted
+      // Django REST framework accepts both "Token" and "Bearer" prefixes
+      config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('Added Bearer token to request');
     }
     
     return config;
@@ -92,7 +99,43 @@ apiClient.interceptors.response.use(
       
       // Handle 401 Unauthorized
       if (error.response.status === 401) {
-        // Redirect to login or refresh token
+        // Check if this might be due to an invalid token
+        if (error.response.data?.detail === "Invalid token.") {
+          console.error('Authentication failed: Invalid token');
+          
+          // For development purposes, let's log more details that might help debug
+          const token = getAuthToken();
+          if (token) {
+            console.log('Current token that failed authentication:', token);
+            
+            // If the token starts with 'dev-token-', it's our demo token that won't work with the backend
+            if (token.startsWith('dev-token-')) {
+              console.warn('Using a demo development token that is not valid for real API calls!');
+              console.warn('For development, please implement a proper auth mechanism or use the mock API');
+            }
+          } else {
+            console.warn('No authentication token found in localStorage');
+          }
+          
+          // Clear the invalid token
+          const storage = getLocalStorage();
+          if (storage) {
+            // Don't fully clear auth - keep user data for demo purposes
+            try {
+              const authData = JSON.parse(storage.getItem('bluapt_auth') || '{}');
+              authData.token = null; // Clear the token but keep user data
+              storage.setItem('bluapt_auth', JSON.stringify(authData));
+            } catch (e) {
+              // If parsing fails, just remove the entire item
+              storage.removeItem('bluapt_auth');
+            }
+          }
+          
+          // Don't redirect automatically for auth errors, return a clear error
+          return Promise.reject(new Error('Authentication failed. Please log in to continue.'));
+        }
+        
+        // Regular unauthorized error - redirect to login
         console.log('Unauthorized - redirecting to login');
         const win = getWindow();
         if (win) {

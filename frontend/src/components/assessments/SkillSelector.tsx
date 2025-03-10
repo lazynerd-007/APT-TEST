@@ -89,7 +89,7 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({
     const matchesSearch = 
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      skill.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      (Array.isArray(skill.tags) && skill.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
     
     const matchesCategory = selectedCategory ? skill.category === selectedCategory : true;
     const matchesDifficulty = selectedDifficulty ? skill.difficulty === selectedDifficulty : true;
@@ -264,13 +264,15 @@ const SkillSelector: React.FC<SkillSelectorProps> = ({
                       <span className="text-xs text-blue-600">
                         {skill.category_name || getCategoryName(skill.category)}
                       </span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {skill.tags.map((tag, index) => (
-                          <span key={index} className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-800">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+                      {Array.isArray(skill.tags) && skill.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {skill.tags.map((tag, index) => (
+                            <span key={index} className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-800">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button

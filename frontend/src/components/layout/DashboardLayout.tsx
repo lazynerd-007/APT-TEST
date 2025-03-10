@@ -1,7 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { NotificationContainer } from '../common/Notification';
-import { FaBars, FaTimes, FaHome, FaGraduationCap, FaClipboardCheck, FaUsers, FaCog } from 'react-icons/fa';
+import { FaBars, FaTimes, FaHome, FaGraduationCap, FaClipboardCheck, FaUsers, FaCog, FaQuestion } from 'react-icons/fa';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -65,6 +65,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <NavItem href="/dashboard" icon={<FaHome />} label="Dashboard" />
               <NavItem href="/skills" icon={<FaGraduationCap />} label="Skills" />
               <NavItem href="/assessments" icon={<FaClipboardCheck />} label="Assessments" />
+              <NavItem href="/questions" icon={<FaQuestion />} label="Questions" />
               <NavItem href="/candidates" icon={<FaUsers />} label="Candidates" />
               <NavItem href="/settings" icon={<FaCog />} label="Settings" />
             </nav>
@@ -84,6 +85,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 <NavItem href="/dashboard" icon={<FaHome />} label="Dashboard" />
                 <NavItem href="/skills" icon={<FaGraduationCap />} label="Skills" />
                 <NavItem href="/assessments" icon={<FaClipboardCheck />} label="Assessments" />
+                <NavItem href="/questions" icon={<FaQuestion />} label="Questions" />
                 <NavItem href="/candidates" icon={<FaUsers />} label="Candidates" />
                 <NavItem href="/settings" icon={<FaCog />} label="Settings" />
               </nav>

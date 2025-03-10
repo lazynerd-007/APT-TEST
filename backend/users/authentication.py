@@ -3,9 +3,15 @@ from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import get_user_model
 from django.conf import settings
 import logging
+import uuid
+from .models import Organization, Role
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+# Hardcoded UUIDs for development
+DEMO_USER_ID = '00000000-0000-0000-0000-000000000001'
+DEMO_ORGANIZATION_ID = '00000000-0000-0000-0000-000000000002'
 
 class DevelopmentAuthentication(BaseAuthentication):
     """
@@ -37,11 +43,16 @@ class DevelopmentAuthentication(BaseAuthentication):
             logger.debug("No token found in Authorization header")
             return None
             
-        # For development purposes, accept any token and return the first admin user
-        # In production, this would validate the token against the database
+        # Ensure demo user and organization exist
+        self.ensure_demo_entities_exist()
+            
+        # For development purposes, accept any token and return the demo user
         try:
-            # Try to get an admin user first
-            user = User.objects.filter(is_staff=True).first()
+            # Try to get the demo user
+            user = User.objects.filter(id=DEMO_USER_ID).first()
+            if not user:
+                # If demo user doesn't exist, get any admin user
+                user = User.objects.filter(is_staff=True).first()
             if not user:
                 # If no admin user exists, get any user
                 user = User.objects.first()
@@ -57,4 +68,52 @@ class DevelopmentAuthentication(BaseAuthentication):
             raise AuthenticationFailed(f'Authentication failed: {str(e)}')
     
     def authenticate_header(self, request):
-        return 'Token' 
+        return 'Token'
+    
+    def ensure_demo_entities_exist(self):
+        """
+        Ensure that demo user and organization exist in the database.
+        This is for development purposes only.
+        """
+        try:
+            # Ensure demo organization exists
+            org, org_created = Organization.objects.get_or_create(
+                id=uuid.UUID(DEMO_ORGANIZATION_ID),
+                defaults={
+                    'name': 'Demo Organization',
+                    'description': 'This is a demo organization for development purposes.'
+                }
+            )
+            if org_created:
+                logger.debug(f"Created demo organization with ID: {DEMO_ORGANIZATION_ID}")
+            
+            # Ensure admin role exists
+            role, role_created = Role.objects.get_or_create(
+                name='admin',
+                defaults={
+                    'permissions': {'admin': True}
+                }
+            )
+            if role_created:
+                logger.debug("Created admin role")
+            
+            # Ensure demo user exists
+            user, user_created = User.objects.get_or_create(
+                id=uuid.UUID(DEMO_USER_ID),
+                defaults={
+                    'email': 'demo@example.com',
+                    'first_name': 'Demo',
+                    'last_name': 'User',
+                    'is_staff': True,
+                    'is_superuser': True,
+                    'organization': org,
+                    'role': role
+                }
+            )
+            if user_created:
+                user.set_password('demo123')
+                user.save()
+                logger.debug(f"Created demo user with ID: {DEMO_USER_ID}")
+                
+        except Exception as e:
+            logger.error(f"Error ensuring demo entities exist: {str(e)}") 

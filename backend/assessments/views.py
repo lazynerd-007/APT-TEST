@@ -207,6 +207,131 @@ class QuestionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(skills__id=skill_id)
         
         return queryset
+    
+    @action(detail=False, methods=['post'], url_path='upload-csv')
+    def upload_csv(self, request):
+        """Upload questions from a CSV file."""
+        import csv
+        import io
+        
+        # Check if file and test_id are provided
+        if 'file' not in request.FILES or 'test_id' not in request.data:
+            return Response(
+                {'error': 'Both file and test_id are required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        csv_file = request.FILES['file']
+        test_id = request.data['test_id']
+        
+        # Check if the file is a CSV
+        if not csv_file.name.endswith('.csv'):
+            return Response(
+                {'error': 'File must be a CSV'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if the test exists
+        try:
+            test = Test.objects.get(id=test_id)
+        except Test.DoesNotExist:
+            return Response(
+                {'error': 'Test not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Process the CSV file
+        try:
+            # Decode the file
+            csv_data = csv_file.read().decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(csv_data))
+            
+            # Validate the CSV structure
+            required_fields = ['question_type', 'content', 'difficulty', 'points']
+            for field in required_fields:
+                if field not in csv_reader.fieldnames:
+                    return Response(
+                        {'error': f'CSV is missing required field: {field}'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Process each row
+            questions_created = 0
+            errors = []
+            
+            for row_num, row in enumerate(csv_reader, start=2):  # Start from 2 to account for header row
+                try:
+                    # Validate question type
+                    question_type = row['question_type'].strip().lower()
+                    if question_type not in ['mcq', 'coding', 'essay', 'file_upload']:
+                        errors.append(f'Row {row_num}: Invalid question type "{question_type}"')
+                        continue
+                    
+                    # Validate difficulty
+                    difficulty = row['difficulty'].strip().lower()
+                    if difficulty not in ['easy', 'medium', 'hard']:
+                        errors.append(f'Row {row_num}: Invalid difficulty "{difficulty}"')
+                        continue
+                    
+                    # Validate points
+                    try:
+                        points = int(row['points'])
+                        if points < 1:
+                            errors.append(f'Row {row_num}: Points must be a positive integer')
+                            continue
+                    except ValueError:
+                        errors.append(f'Row {row_num}: Points must be a number')
+                        continue
+                    
+                    # Create the question
+                    question = Question.objects.create(
+                        test=test,
+                        content=row['content'].strip(),
+                        type=question_type,
+                        difficulty=difficulty,
+                        points=points
+                    )
+                    
+                    # For MCQ questions, process answers
+                    if question_type == 'mcq' and 'answers' in row and row['answers']:
+                        answers = [ans.strip() for ans in row['answers'].split(',')]
+                        
+                        # Process correct answers
+                        correct_answers = []
+                        if 'correct_answers' in row and row['correct_answers']:
+                            try:
+                                # Can be a comma-separated list of indices or a single index
+                                correct_indices = [int(idx.strip()) for idx in row['correct_answers'].split(',')]
+                                correct_answers = [answers[idx] for idx in correct_indices if 0 <= idx < len(answers)]
+                            except (ValueError, IndexError):
+                                errors.append(f'Row {row_num}: Invalid correct_answers format')
+                        
+                        # Create answer objects
+                        for answer_text in answers:
+                            Answer.objects.create(
+                                question=question,
+                                content=answer_text,
+                                is_correct=answer_text in correct_answers,
+                                explanation=row.get('explanation', '')
+                            )
+                    
+                    questions_created += 1
+                    
+                except Exception as e:
+                    errors.append(f'Row {row_num}: {str(e)}')
+            
+            # Return the results
+            return Response({
+                'success': True,
+                'questions_created': questions_created,
+                'errors': errors
+            }, status=status.HTTP_201_CREATED if questions_created > 0 else status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error processing CSV: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class CandidateAssessmentViewSet(viewsets.ModelViewSet):
