@@ -33,7 +33,8 @@ from skills.models import Skill
 class AssessmentViewSet(viewsets.ModelViewSet):
     """ViewSet for the Assessment model."""
     queryset = Assessment.objects.all()
-    permission_classes = [IsAuthenticated]
+    # For development purposes, allow unauthenticated access
+    permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['created_by', 'organization', 'is_active']
     search_fields = ['title', 'description']
@@ -144,7 +145,8 @@ class TestViewSet(viewsets.ModelViewSet):
     """ViewSet for the Test model."""
     queryset = Test.objects.all()
     serializer_class = TestSerializer
-    permission_classes = [IsAuthenticated]
+    # For development purposes, allow unauthenticated access
+    permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['created_by', 'organization', 'category', 'difficulty', 'is_active']
     search_fields = ['title', 'description']
@@ -179,7 +181,8 @@ class QuestionViewSet(viewsets.ModelViewSet):
     """ViewSet for the Question model."""
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
-    permission_classes = [IsAuthenticated]
+    # For development purposes, allow unauthenticated access
+    permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['test', 'question_type']
     search_fields = ['title', 'description']
@@ -206,7 +209,8 @@ class CandidateAssessmentViewSet(viewsets.ModelViewSet):
     """ViewSet for the CandidateAssessment model."""
     queryset = CandidateAssessment.objects.all()
     serializer_class = CandidateAssessmentSerializer
-    permission_classes = [IsAuthenticated]
+    # For development purposes, allow unauthenticated access
+    permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['candidate', 'assessment', 'status']
     search_fields = ['assessment__title', 'candidate__email']
@@ -250,7 +254,8 @@ class CandidateTestViewSet(viewsets.ModelViewSet):
     """ViewSet for the CandidateTest model."""
     queryset = CandidateTest.objects.all()
     serializer_class = CandidateTestSerializer
-    permission_classes = [IsAuthenticated]
+    # For development purposes, allow unauthenticated access
+    permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['candidate_assessment', 'test', 'status']
     ordering_fields = ['start_time', 'end_time', 'score', 'created_at']
@@ -276,7 +281,8 @@ class CandidateSkillScoreViewSet(viewsets.ModelViewSet):
     """ViewSet for the CandidateSkillScore model."""
     queryset = CandidateSkillScore.objects.all()
     serializer_class = CandidateSkillScoreSerializer
-    permission_classes = [IsAuthenticated]
+    # For development purposes, allow unauthenticated access
+    permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['candidate', 'skill', 'assessment']
     ordering_fields = ['score', 'created_at']

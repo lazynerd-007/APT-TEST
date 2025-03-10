@@ -1,8 +1,10 @@
 import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
-import { AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
+import { useEffect } from 'react';
+import { setUpdatePasswordFunction } from '../services/authService';
 
 // List of routes that require authentication
 const protectedRoutes = [
@@ -13,8 +15,15 @@ const protectedRoutes = [
   '/settings',
 ];
 
-export default function App({ Component, pageProps }: AppProps) {
+// Wrapper component to connect AuthContext with authService
+function AppWithAuth({ Component, pageProps }: AppProps) {
+  const { updatePassword } = useAuth();
   const router = useRouter();
+
+  // Connect the updatePassword function from AuthContext to authService
+  useEffect(() => {
+    setUpdatePasswordFunction(updatePassword);
+  }, [updatePassword]);
 
   // Check if the current route is protected
   const isProtectedRoute = protectedRoutes.some(route => 
@@ -22,7 +31,7 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 
   return (
-    <AuthProvider>
+    <>
       {isProtectedRoute ? (
         <ProtectedRoute>
           <Component {...pageProps} />
@@ -30,6 +39,14 @@ export default function App({ Component, pageProps }: AppProps) {
       ) : (
         <Component {...pageProps} />
       )}
+    </>
+  );
+}
+
+export default function App(props: AppProps) {
+  return (
+    <AuthProvider>
+      <AppWithAuth {...props} />
     </AuthProvider>
   );
 } 

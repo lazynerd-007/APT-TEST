@@ -13,6 +13,7 @@ from .models import (
     CandidateSkillScore
 )
 from skills.serializers import SkillSerializer
+from skills.models import Skill
 
 
 class AssessmentSkillSerializer(serializers.ModelSerializer):

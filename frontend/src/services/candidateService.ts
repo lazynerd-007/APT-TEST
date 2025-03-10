@@ -1,7 +1,15 @@
 import axios from 'axios';
-import { API_URL } from '../config';
+import apiClient from './apiClient';
+import { API_URL, API_BASE_URL } from '../config';
 
-const API_ENDPOINT = `${API_URL}/users`;
+// Create a separate axios instance for public endpoints
+const publicApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
+});
 
 export interface CandidateInvite {
   name: string;
@@ -33,12 +41,11 @@ const candidateService = {
    */
   inviteCandidates: async (data: InviteRequest): Promise<InviteResponse> => {
     try {
-      const response = await axios.post(
-        `${API_ENDPOINT}/invite_candidates/`, 
+      const response = await publicApiClient.post(
+        `/api/v1/users/invite_candidates/`, 
         data,
         {
           headers: {
-            'Content-Type': 'application/json',
             'X-Postmark-API-Key': '6be4158a-6496-4d18-bedf-ecac1e65b9bc'
           }
         }
@@ -46,6 +53,7 @@ const candidateService = {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
+        console.error('Error inviting candidates:', error.response.data);
         throw new Error(error.response.data.error || 'Failed to invite candidates');
       }
       throw new Error('Network error occurred');
@@ -58,7 +66,7 @@ const candidateService = {
    */
   getCandidates: async () => {
     try {
-      const response = await axios.get(`${API_ENDPOINT}?is_candidate=true`);
+      const response = await apiClient.get(`/users?is_candidate=true`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -75,7 +83,7 @@ const candidateService = {
    */
   getCandidateById: async (id: string) => {
     try {
-      const response = await axios.get(`${API_ENDPOINT}/${id}/`);
+      const response = await apiClient.get(`/users/${id}/`);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -93,13 +101,14 @@ const candidateService = {
    */
   verifyAccessCode: async (email: string, accessCode: string) => {
     try {
-      const response = await axios.post(`${API_ENDPOINT}/verify_access_code/`, {
+      const response = await publicApiClient.post(`/api/v1/users/verify_access_code/`, {
         email,
         access_code: accessCode
       });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
+        console.error('Error verifying access code:', error.response.data);
         throw new Error(error.response.data.error || 'Invalid email or access code');
       }
       throw new Error('Network error occurred');

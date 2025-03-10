@@ -185,10 +185,8 @@ const CandidateLogin = () => {
       <div className="mt-8 text-center">
         <p className="text-sm text-gray-600">
           Are you an employer?{' '}
-          <Link href="/login">
-            <a className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in to the admin dashboard
-            </a>
+          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            Sign in to the admin dashboard
           </Link>
         </p>
       </div>

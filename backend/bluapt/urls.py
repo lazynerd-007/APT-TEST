@@ -29,15 +29,12 @@ api_v1_patterns = [
     path('users/', include('users.urls')),
     
     # Other API endpoints
-    # path('auth/', include('users.urls.auth')),
+    path('auth/', include('users.auth_urls')),
     # path('organizations/', include('users.urls.organizations')),
-    # path('tests/', include('assessments.urls.tests')),
-    # path('assessments/', include('assessments.urls.assessments')),
-    # path('candidate/', include('assessments.urls.candidate')),
-    # path('employer/', include('assessments.urls.employer')),
+    path('skills/', include('skills.urls')),
+    path('assessments/', include('assessments.urls')),
     # path('execution/', include('execution.urls')),
     # path('analytics/', include('analytics.urls')),
-    path('skills/', include('skills.urls')),
 ]
 
 urlpatterns = [
@@ -49,6 +46,8 @@ urlpatterns = [
     
     # Direct API routes for backward compatibility
     path('api/users/', include('users.urls')),
+    path('api/skills/', include('skills.urls')),
+    path('api/assessments/', include('assessments.urls')),
     
     # OAuth2
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),

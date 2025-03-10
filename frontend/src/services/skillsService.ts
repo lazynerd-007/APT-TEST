@@ -50,7 +50,7 @@ api.interceptors.request.use((config) => {
     try {
       const { token } = JSON.parse(authData);
       if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.Authorization = `Token ${token}`;
       }
     } catch (error) {
       console.error('Error parsing auth data:', error);

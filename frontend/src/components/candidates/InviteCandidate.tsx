@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { FaEnvelope, FaPlus, FaTrash, FaSpinner } from 'react-icons/fa';
 
-// Add import for candidateService
+// Add import for candidateService and assessmentsService
 import candidateService, { CandidateInvite } from '../../services/candidateService';
+import assessmentsService from '../../services/assessmentsService';
 
 interface InviteCandidateProps {
   assessmentId?: string;
@@ -19,28 +20,70 @@ const InviteCandidate: React.FC<InviteCandidateProps> = ({ assessmentId, onSucce
   const [success, setSuccess] = useState<string | null>(null);
   const [assessments, setAssessments] = useState<{ id: string; title: string }[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState(assessmentId || '');
+  const [loadingAssessments, setLoadingAssessments] = useState(false);
 
   // Fetch available assessments when component mounts
   React.useEffect(() => {
     const fetchAssessments = async () => {
       try {
-        // In a real app, this would be an API call
-        // Mock data for now
-        const mockAssessments = [
-          { id: '1', title: 'JavaScript Fundamentals' },
-          { id: '2', title: 'React Component Development' },
-          { id: '3', title: 'CSS and Responsive Design' },
-          { id: '4', title: 'Data Structures and Algorithms' }
-        ];
-        setAssessments(mockAssessments);
+        setLoadingAssessments(true);
+        // Fetch real assessments from the API
+        console.log('Fetching assessments...');
+        const assessmentsData = await assessmentsService.getAssessmentsForInvite();
+        console.log('Assessments data received:', assessmentsData);
+        
+        // Map the response to the format we need
+        const formattedAssessments = Array.isArray(assessmentsData) 
+          ? assessmentsData.map(assessment => ({
+              id: assessment.id,
+              title: assessment.title
+            }))
+          : [];
+        
+        console.log('Formatted assessments:', formattedAssessments);
+        
+        // Add our test assessment if it's not already in the list
+        const testAssessmentId = '42015349-772c-49ab-8f6a-739c8ab9d613';
+        if (formattedAssessments.length === 0 || !formattedAssessments.some(a => a.id === testAssessmentId)) {
+          formattedAssessments.unshift({ 
+            id: testAssessmentId, 
+            title: 'Test Assessment' 
+          });
+        }
+        
+        setAssessments(formattedAssessments);
         
         if (assessmentId && !selectedAssessmentId) {
           setSelectedAssessmentId(assessmentId);
-        } else if (mockAssessments.length > 0 && !selectedAssessmentId) {
-          setSelectedAssessmentId(mockAssessments[0].id);
+        } else if (formattedAssessments.length > 0 && !selectedAssessmentId) {
+          setSelectedAssessmentId(formattedAssessments[0].id);
         }
+        
+        setError(null);
       } catch (err) {
-        setError('Failed to load assessments');
+        console.error('Error fetching assessments:', err);
+        
+        // Show more detailed error message
+        let errorMessage = 'Failed to load assessments';
+        if (err instanceof Error) {
+          errorMessage += `: ${err.message}`;
+        }
+        
+        if (err.response) {
+          console.error('Error response:', err.response.data);
+          errorMessage += ` (${err.response.status}: ${JSON.stringify(err.response.data)})`;
+        }
+        
+        setError(errorMessage);
+        
+        // Fallback to our test assessment if API fails
+        const fallbackAssessments = [
+          { id: '42015349-772c-49ab-8f6a-739c8ab9d613', title: 'Test Assessment' }
+        ];
+        setAssessments(fallbackAssessments);
+        setSelectedAssessmentId(fallbackAssessments[0].id);
+      } finally {
+        setLoadingAssessments(false);
       }
     };
     
@@ -166,14 +209,27 @@ const InviteCandidate: React.FC<InviteCandidateProps> = ({ assessmentId, onSucce
             onChange={(e) => setSelectedAssessmentId(e.target.value)}
             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             required
+            disabled={loadingAssessments}
           >
-            <option value="">Select an assessment</option>
-            {assessments.map(assessment => (
-              <option key={assessment.id} value={assessment.id}>
-                {assessment.title}
-              </option>
-            ))}
+            {loadingAssessments ? (
+              <option value="">Loading assessments...</option>
+            ) : (
+              <>
+                <option value="">Select an assessment</option>
+                {assessments.map(assessment => (
+                  <option key={assessment.id} value={assessment.id}>
+                    {assessment.title}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
+          {loadingAssessments && (
+            <div className="mt-2 flex items-center text-sm text-gray-500">
+              <FaSpinner className="animate-spin mr-2" />
+              Loading assessments...
+            </div>
+          )}
         </div>
         
         <div className="mb-6">

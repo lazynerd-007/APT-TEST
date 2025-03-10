@@ -1,5 +1,15 @@
 import axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL, API_BASE_URL } from '../config';
+import apiClient from './apiClient';
+
+// Create a separate axios instance for public endpoints
+const publicApiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
+});
 
 // Types
 export interface Skill {
@@ -142,37 +152,48 @@ export interface CandidateSkillScore {
 const assessmentsService = {
   // Assessments
   getAssessments: async (params?: any) => {
-    const response = await axios.get(`${API_URL}/api/assessments/`, { params });
-    return response.data;
+    try {
+      console.log('Calling getAssessments with params:', params);
+      // Use publicApiClient for development purposes
+      const response = await publicApiClient.get('/assessments/', { params });
+      console.log('Assessment API response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Error in getAssessments:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('API error response:', error.response.data);
+      }
+      throw error;
+    }
   },
 
   getAssessment: async (id: string) => {
-    const response = await axios.get(`${API_URL}/api/assessments/${id}/`);
+    const response = await apiClient.get(`/assessments/${id}/`);
     return response.data;
   },
 
   createAssessment: async (assessment: AssessmentCreateUpdate) => {
-    const response = await axios.post(`${API_URL}/api/assessments/`, assessment);
+    const response = await apiClient.post(`/assessments/`, assessment);
     return response.data;
   },
 
   updateAssessment: async (id: string, assessment: AssessmentCreateUpdate) => {
-    const response = await axios.put(`${API_URL}/api/assessments/${id}/`, assessment);
+    const response = await apiClient.put(`/assessments/${id}/`, assessment);
     return response.data;
   },
 
   deleteAssessment: async (id: string) => {
-    await axios.delete(`${API_URL}/api/assessments/${id}/`);
+    await apiClient.delete(`/assessments/${id}/`);
   },
 
   // Assessment Skills
   getAssessmentSkills: async (assessmentId: string) => {
-    const response = await axios.get(`${API_URL}/api/assessments/${assessmentId}/skills/`);
+    const response = await apiClient.get(`/assessments/${assessmentId}/skills/`);
     return response.data;
   },
 
   addSkillToAssessment: async (assessmentId: string, skillId: string, importance: string = 'secondary') => {
-    const response = await axios.post(`${API_URL}/api/assessments/${assessmentId}/add_skill/`, {
+    const response = await apiClient.post(`/assessments/${assessmentId}/add_skill/`, {
       skill_id: skillId,
       importance
     });
@@ -180,73 +201,73 @@ const assessmentsService = {
   },
 
   removeSkillFromAssessment: async (assessmentId: string, skillId: string) => {
-    await axios.delete(`${API_URL}/api/assessments/${assessmentId}/remove_skill/`, {
+    await apiClient.delete(`/assessments/${assessmentId}/remove_skill/`, {
       data: { skill_id: skillId }
     });
   },
 
   // Tests
   getTests: async (params?: any) => {
-    const response = await axios.get(`${API_URL}/api/tests/`, { params });
+    const response = await apiClient.get(`/tests/`, { params });
     return response.data;
   },
 
   getTest: async (id: string) => {
-    const response = await axios.get(`${API_URL}/api/tests/${id}/`);
+    const response = await apiClient.get(`/tests/${id}/`);
     return response.data;
   },
 
   createTest: async (test: any) => {
-    const response = await axios.post(`${API_URL}/api/tests/`, test);
+    const response = await apiClient.post(`/tests/`, test);
     return response.data;
   },
 
   updateTest: async (id: string, test: any) => {
-    const response = await axios.put(`${API_URL}/api/tests/${id}/`, test);
+    const response = await apiClient.put(`/tests/${id}/`, test);
     return response.data;
   },
 
   deleteTest: async (id: string) => {
-    await axios.delete(`${API_URL}/api/tests/${id}/`);
+    await apiClient.delete(`/tests/${id}/`);
   },
 
   // Questions
   getQuestions: async (params?: any) => {
-    const response = await axios.get(`${API_URL}/api/questions/`, { params });
+    const response = await apiClient.get(`/questions/`, { params });
     return response.data;
   },
 
   getTestQuestions: async (testId: string) => {
-    const response = await axios.get(`${API_URL}/api/tests/${testId}/questions/`);
+    const response = await apiClient.get(`/tests/${testId}/questions/`);
     return response.data;
   },
 
   // Candidate Assessments
   getCandidateAssessments: async (params?: any) => {
-    const response = await axios.get(`${API_URL}/api/candidate-assessments/`, { params });
+    const response = await apiClient.get(`/candidate-assessments/`, { params });
     return response.data;
   },
 
   getCandidateAssessment: async (id: string) => {
-    const response = await axios.get(`${API_URL}/api/candidate-assessments/${id}/`);
+    const response = await apiClient.get(`/candidate-assessments/${id}/`);
     return response.data;
   },
 
   // Candidate Tests
   getCandidateTests: async (candidateAssessmentId: string) => {
-    const response = await axios.get(`${API_URL}/api/candidate-assessments/${candidateAssessmentId}/tests/`);
+    const response = await apiClient.get(`/candidate-assessments/${candidateAssessmentId}/tests/`);
     return response.data;
   },
 
   // Skill Scores
   getCandidateSkillScores: async (candidateAssessmentId: string) => {
-    const response = await axios.get(`${API_URL}/api/candidate-assessments/${candidateAssessmentId}/skill_scores/`);
+    const response = await apiClient.get(`/candidate-assessments/${candidateAssessmentId}/skill_scores/`);
     return response.data;
   },
 
   // Filter assessments by skill
   getAssessmentsBySkill: async (skillId: string) => {
-    const response = await axios.get(`${API_URL}/api/assessments/`, {
+    const response = await apiClient.get(`/assessments/`, {
       params: { skill_id: skillId }
     });
     return response.data;
@@ -254,10 +275,26 @@ const assessmentsService = {
 
   // Filter tests by skill
   getTestsBySkill: async (skillId: string) => {
-    const response = await axios.get(`${API_URL}/api/tests/`, {
+    const response = await apiClient.get(`/tests/`, {
       params: { skill_id: skillId }
     });
     return response.data;
+  },
+
+  // Get assessments for inviting candidates
+  getAssessmentsForInvite: async () => {
+    try {
+      const response = await apiClient.get('/assessments/', {
+        params: { is_active: true }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching assessments for invite:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('API error response:', error.response.data);
+      }
+      throw error;
+    }
   }
 };
 

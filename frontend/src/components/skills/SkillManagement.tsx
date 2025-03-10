@@ -54,12 +54,21 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
           skillsService.getSkills(),
           skillsService.getCategories()
         ]);
-        setSkills(skillsData);
-        setCategories(categoriesData);
+        
+        // Ensure skills is always an array
+        setSkills(Array.isArray(skillsData) ? skillsData : []);
+        
+        // Ensure categories is always an array
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load skills and categories. Please try again later.');
+        
+        // Set empty arrays on error
+        setSkills([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
@@ -124,9 +133,9 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         const updatedSkill = await skillsService.updateSkill(editingSkill.id, skillData);
         
         // Update local state
-        setSkills(skills.map(skill => 
-          skill.id === editingSkill.id ? updatedSkill : skill
-        ));
+        setSkills(Array.isArray(skills) ? skills.map(skill =>
+          skill.id === editingSkill.id ? { ...skill, ...updatedSkill } : skill
+        ) : []);
         
         if (onSkillUpdated) {
           onSkillUpdated(updatedSkill);
@@ -138,7 +147,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
         const newSkill = await skillsService.createSkill(skillData);
         
         // Update local state
-        setSkills([...skills, newSkill]);
+        setSkills(Array.isArray(skills) ? [...skills, newSkill] : [newSkill]);
         
         if (onSkillCreated) {
           onSkillCreated(newSkill);
@@ -183,7 +192,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
       await skillsService.deleteSkill(id);
       
       // Update local state
-      setSkills(skills.filter(skill => skill.id !== id));
+      setSkills(Array.isArray(skills) ? skills.filter(skill => skill.id !== id) : []);
       
       if (onSkillDeleted) {
         onSkillDeleted(id);
@@ -197,7 +206,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
   };
 
   // Filter skills based on search and filters
-  const filteredSkills = skills.filter(skill => {
+  const filteredSkills = Array.isArray(skills) ? skills.filter(skill => {
     const matchesSearch = 
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -207,7 +216,7 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
     const matchesDifficulty = selectedDifficulty ? skill.difficulty === selectedDifficulty : true;
     
     return matchesSearch && matchesCategory && matchesDifficulty;
-  });
+  }) : [];
 
   // Loading state
   if (loading) {
@@ -275,12 +284,13 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
               <FaTags className="text-gray-400" />
             </div>
             <select
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              id="category-filter"
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="">All Categories</option>
-              {categories.map(category => (
+              {Array.isArray(categories) && categories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -434,14 +444,15 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
                   Category
                 </label>
                 <select
+                  id="category"
                   name="category"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   required
                 >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
+                  <option value="">Select a Category</option>
+                  {Array.isArray(categories) && categories.map(category => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -563,8 +574,9 @@ const SkillManagement: React.FC<SkillManagementProps> = ({
 
   // Helper function to get category name from ID
   function getCategoryName(categoryId: string): string {
-    const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : 'Unknown';
+    if (!categoryId) return 'Uncategorized';
+    const category = Array.isArray(categories) ? categories.find(cat => cat.id === categoryId) : undefined;
+    return category ? category.name : 'Uncategorized';
   }
 };
 
