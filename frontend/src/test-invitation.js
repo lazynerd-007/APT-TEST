@@ -7,7 +7,7 @@ async function testInvitation() {
   try {
     // Test data
     const inviteData = {
-      assessment_id: '1',
+      assessment_id: '123e4567-e89b-12d3-a456-426614174000',
       candidates: [
         { name: 'John Doe', email: 'john.doe@example.com' },
         { name: 'Jane Smith', email: 'jane.smith@example.com' }

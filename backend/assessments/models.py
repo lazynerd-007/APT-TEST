@@ -291,7 +291,8 @@ class CandidateAnswer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     candidate_test = models.ForeignKey(CandidateTest, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='candidate_answers')
-    answer_content = models.TextField()
+    content = models.TextField()
+    is_correct = models.BooleanField(default=False)
     score = models.DecimalField(
         max_digits=5, 
         decimal_places=2,
@@ -304,7 +305,7 @@ class CandidateAnswer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"Answer for {self.question.content[:30]}..."
+        return f"Answer by {self.candidate_test.candidate_assessment.candidate} for {self.question}"
 
 
 class CodeSubmission(models.Model):

@@ -9,14 +9,18 @@ class CandidateProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     candidate_profile = CandidateProfileSerializer(read_only=True)
+    name = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'is_active', 'is_staff', 'is_candidate', 'date_joined', 'candidate_profile']
+        fields = ['id', 'email', 'password', 'first_name', 'last_name', 'name', 'is_active', 'is_staff', 'is_candidate', 'date_joined', 'candidate_profile', 'role']
         read_only_fields = ['date_joined']
         extra_kwargs = {
             'password': {'write_only': True}
         }
+    
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
     
     def create(self, validated_data):
         password = validated_data.pop('password', None)

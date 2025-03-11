@@ -209,8 +209,32 @@ const assessmentsService = {
 
   // Tests
   getTests: async (params?: any) => {
-    const response = await apiClient.get(`/assessments/tests/`, { params });
-    return response.data;
+    try {
+      const response = await apiClient.get(`/assessments/tests/`, { params });
+      
+      // Ensure we return an array of tests with id and title properties
+      const testsData = response.data;
+      
+      // If the response is already an array, return it
+      if (Array.isArray(testsData)) {
+        return testsData;
+      }
+      
+      // If the response has a results property (paginated response), return that
+      if (testsData.results && Array.isArray(testsData.results)) {
+        return testsData.results;
+      }
+      
+      // Otherwise, return an empty array
+      console.warn('Unexpected response format from tests API:', testsData);
+      return [];
+    } catch (error) {
+      console.error('Error fetching tests:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('API error response:', error.response.data);
+      }
+      throw error;
+    }
   },
 
   getTest: async (id: string) => {
@@ -262,13 +286,33 @@ const assessmentsService = {
     formData.append('file', file);
     formData.append('test_id', testId);
     
-    const response = await apiClient.post(`/assessments/questions/upload-csv/`, formData, {
+    const response = await apiClient.post('/assessments/questions/import_csv/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     
     return response.data;
+  },
+
+  exportQuestionsCSV: async (testId: string): Promise<void> => {
+    try {
+      const response = await apiClient.get(`/assessments/questions/tests/${testId}/export_questions/`, {
+        responseType: 'blob'
+      });
+      
+      // Create a download link and trigger the download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `test_questions_${testId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting questions:', error);
+      throw error;
+    }
   },
 
   getTestQuestions: async (testId: string) => {
@@ -352,13 +396,26 @@ const assessmentsService = {
     return response.data;
   },
 
-  getCandidateTest: async (id: string) => {
+  getCandidateTest: async (id: string): Promise<CandidateTest> => {
     const response = await apiClient.get(`/assessments/candidate-tests/${id}/`);
     return response.data;
   },
 
-  updateCandidateTest: async (id: string, candidateTest: any) => {
-    const response = await apiClient.put(`/assessments/candidate-tests/${id}/`, candidateTest);
+  updateCandidateTest: async (id: string, data: Partial<CandidateTest>): Promise<CandidateTest> => {
+    const response = await apiClient.patch(`/assessments/candidate-tests/${id}/`, data);
+    return response.data;
+  },
+
+  submitAnswer: async (candidateTestId: string, questionId: string, data: any): Promise<any> => {
+    const response = await apiClient.post(`/assessments/candidate-tests/${candidateTestId}/answers/`, {
+      question_id: questionId,
+      ...data
+    });
+    return response.data;
+  },
+
+  getAnswers: async (candidateTestId: string): Promise<any[]> => {
+    const response = await apiClient.get(`/assessments/candidate-tests/${candidateTestId}/answers/`);
     return response.data;
   },
 
@@ -371,6 +428,21 @@ const assessmentsService = {
   getSkillScore: async (id: string) => {
     const response = await apiClient.get(`/assessments/skill-scores/${id}/`);
     return response.data;
+  },
+
+  reorderQuestions: async (testId: string, questionIds: string[]) => {
+    try {
+      const response = await apiClient.post(`/assessments/tests/${testId}/reorder_questions/`, {
+        question_ids: questionIds
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error reordering questions:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('API error response:', error.response.data);
+      }
+      throw error;
+    }
   }
 };
 

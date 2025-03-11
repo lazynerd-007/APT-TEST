@@ -1,0 +1,5 @@
+content,type,points,difficulty,answers
+What is JavaScript?,mcq,5,medium,"[{""content"":""A programming language"",""is_correct"":true},{""content"":""A markup language"",""is_correct"":false}]"
+Write a function to calculate factorial,coding,10,hard,
+Explain the concept of inheritance in OOP,essay,8,medium,
+Upload your solution as a ZIP file,file_upload,15,medium, 

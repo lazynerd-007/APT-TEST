@@ -35,6 +35,31 @@ const generateValidToken = (email: string) => {
   return `${Buffer.from(email).toString('base64').replace(/=/g, '')}${random}${timestamp % 1000}`;
 };
 
+// Define user interface
+export interface User {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  token?: string;
+}
+
+// Define login credentials interface
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+// Define registration data interface
+export interface RegistrationData {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 const authService = {
   /**
    * Login with email and password
@@ -216,6 +241,99 @@ const authService = {
       return response.data;
     } catch (error) {
       console.error('Authentication test failed:', error);
+      throw error;
+    }
+  },
+
+  // Login user
+  loginUser: async (credentials: LoginCredentials): Promise<User> => {
+    try {
+      console.log('Attempting to login with credentials:', credentials);
+      const response = await axios.post(`${API_URL}/auth/login/`, credentials);
+      console.log('Login response:', response.data);
+      const user = response.data;
+      
+      // Store user in localStorage
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      return user;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+  
+  // Register user
+  registerUser: async (data: RegistrationData): Promise<User> => {
+    try {
+      const response = await axios.post(`${API_URL}/users/register/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  },
+  
+  // Logout user
+  logout: (): void => {
+    localStorage.removeItem('user');
+  },
+  
+  // Get current user from localStorage
+  getCurrentUser: (): User | null => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      return JSON.parse(userStr);
+    }
+    return null;
+  },
+  
+  // Login as demo user
+  loginAsDemo: async (): Promise<User> => {
+    try {
+      // Use the demo credentials directly
+      const loginCredentials = {
+        email: 'demo.candidate@example.com',
+        password: 'demopassword'
+      };
+      
+      console.log('Attempting demo login with credentials:', loginCredentials);
+      
+      // Try to login with the demo credentials
+      try {
+        const loginResponse = await axios.post(`${API_URL}/auth/login/`, loginCredentials);
+        console.log('Demo login successful:', loginResponse.data);
+        const user = loginResponse.data;
+        
+        // Store user in localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        return user;
+      } catch (loginError) {
+        // If login fails, try to create the demo user first
+        console.log('Demo login failed:', loginError);
+        console.log('Trying to create demo user first...');
+        
+        const createResponse = await axios.post(`${API_URL}/users/create_demo_user/`);
+        console.log('Demo user creation response:', createResponse.data);
+        
+        // Then try to login again
+        console.log('Attempting demo login again after user creation...');
+        const loginResponse = await axios.post(`${API_URL}/auth/login/`, loginCredentials);
+        console.log('Demo login successful after user creation:', loginResponse.data);
+        const user = loginResponse.data;
+        
+        // Store user in localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        return user;
+      }
+    } catch (error) {
+      console.error('Demo login error:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+      }
       throw error;
     }
   }

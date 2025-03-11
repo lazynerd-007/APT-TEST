@@ -1,58 +1,120 @@
-# BLUAPT - Skills-Based Hiring Platform
+# Assessment Platform Tool
 
-BLUAPT is an in-house hiring platform focused on skills-based assessments, designed to objectively evaluate candidates through coding tests, aptitude assessments, and situational judgment scenarios.
+A comprehensive platform for creating, managing, and conducting technical assessments for candidates.
 
-## System Architecture
+## Features
 
-BLUAPT follows a modern microservices architecture with:
+### Test Management
+- Create and manage tests with different categories and difficulty levels
+- Add, edit, and reorder questions within tests
+- Support for multiple question types: Multiple Choice, Coding, Essay, and File Upload
+- Bulk import and export of questions using CSV
+- Preview tests as they will appear to candidates
 
-- **Backend**: Python-based API services using Django REST Framework
-- **Frontend**: Next.js application with responsive design
-- **Database**: PostgreSQL for structured data storage
-- **Authentication**: JWT/OAuth2 for secure role-based access
+### Assessment Management
+- Create assessments by combining multiple tests
+- Assign assessments to candidates
+- Track candidate progress and results
 
-## Core Components
-
-### Backend Services
-
-1. **Assessment Service**: Manages test creation, configuration, and delivery
-2. **Execution Service**: Handles code execution in sandboxed environments
-3. **Analytics Service**: Processes assessment results and generates insights
-4. **User Service**: Manages authentication, profiles, and role-based access
-
-### Frontend Applications
-
-1. **Candidate Portal**: Interface for taking assessments with real-time features
-2. **Admin Dashboard**: Comprehensive tools for employers to manage the hiring process
-3. **Analytics Dashboard**: Visual representation of candidate performance and comparisons
-
-## Key Features
-
-- **Test Library**: Pre-built assessments with configurable parameters
-- **Custom Assessment Builder**: Modular system to create role-specific evaluations
-- **Real-time Proctoring**: Browser monitoring and anti-cheating measures
-- **Objective Scoring**: Automated evaluation with bias mitigation strategies
-- **Comprehensive Analytics**: Data-driven insights for hiring decisions
+### Candidate Experience
+- User-friendly interface for taking tests
+- Support for different question types
+- Automatic scoring for objective questions
 
 ## Technology Stack
 
-### Backend
-- Django/Django REST Framework
-- Celery for asynchronous task processing
-- PostgreSQL for data storage
-- Redis for caching and real-time features
-- Docker for containerization
-
 ### Frontend
-- Next.js with TypeScript
-- React Query for data fetching
-- Chart.js/D3.js for data visualization
-- TailwindCSS for styling
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+### Backend
+- Django
+- Django REST Framework
+- SQLite (development) / PostgreSQL (production)
 
 ## Getting Started
 
-Detailed setup instructions coming soon.
+### Prerequisites
+- Node.js (v14+)
+- Python (v3.8+)
+- pip
+
+### Installation
+
+#### Backend Setup
+1. Navigate to the backend directory:
+   ```
+   cd backend
+   ```
+
+2. Create a virtual environment:
+   ```
+   python -m venv venv
+   ```
+
+3. Activate the virtual environment:
+   - Windows: `venv\Scripts\activate`
+   - macOS/Linux: `source venv/bin/activate`
+
+4. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+5. Run migrations:
+   ```
+   python manage.py migrate
+   ```
+
+6. Start the development server:
+   ```
+   python manage.py runserver
+   ```
+
+#### Frontend Setup
+1. Navigate to the frontend directory:
+   ```
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```
+   npm install
+   ```
+
+3. Start the development server:
+   ```
+   npm run dev
+   ```
+
+4. Open your browser and navigate to `http://localhost:3000`
+
+## Usage
+
+### Creating a Test
+1. Navigate to the Tests page
+2. Click "Create Test"
+3. Fill in the test details and save
+4. Add questions to the test
+
+### Importing Questions
+1. Navigate to a test's details page
+2. Click "Import Questions"
+3. Download the CSV template if needed
+4. Prepare your CSV file with questions
+5. Upload the CSV file
+
+### Exporting Questions
+1. Navigate to a test's details page
+2. Click "Export Questions"
+3. The CSV file will be downloaded automatically
+
+### Previewing a Test
+1. Navigate to a test's details page
+2. Click "Preview Test"
+3. Navigate through the questions to see how they will appear to candidates
 
 ## License
-
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

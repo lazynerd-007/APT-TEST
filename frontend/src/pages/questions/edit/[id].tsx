@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import QuestionForm from '@/components/assessments/QuestionForm';
 import { assessmentsService } from '@/services/assessmentsService';
 import { Spinner } from '@/components/ui';
@@ -13,6 +13,7 @@ const EditQuestionPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [question, setQuestion] = useState(null);
   const [availableSkills, setAvailableSkills] = useState([]);
+  const [availableTests, setAvailableTests] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,14 +21,16 @@ const EditQuestionPage = () => {
       
       try {
         setLoading(true);
-        const [questionData, skillsData] = await Promise.all([
+        const [questionData, skillsData, testsData] = await Promise.all([
           // This endpoint needs to be implemented in the assessmentsService
           assessmentsService.getQuestion(id as string),
           assessmentsService.getSkills(),
+          assessmentsService.getTests(),
         ]);
         
         setQuestion(questionData);
         setAvailableSkills(skillsData);
+        setAvailableTests(testsData);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load question data');
@@ -102,6 +105,7 @@ const EditQuestionPage = () => {
           <QuestionForm
             initialData={question}
             availableSkills={availableSkills}
+            availableTests={availableTests}
             onSubmit={handleSubmit}
             isSubmitting={submitting}
           />

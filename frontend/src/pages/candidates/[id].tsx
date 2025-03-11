@@ -27,7 +27,7 @@ import {
   FaBuilding,
   FaArrowLeft
 } from 'react-icons/fa';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import CandidateSkillProfile from '@/components/candidates/CandidateSkillProfile';
 import usersService from '@/services/usersService';
 

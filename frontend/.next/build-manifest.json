@@ -27,25 +27,20 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/assessments": [
+    "/candidate/dashboard": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/assessments.js"
+      "static/chunks/pages/candidate/dashboard.js"
     ],
-    "/dashboard": [
+    "/candidate/login": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/dashboard.js"
+      "static/chunks/pages/candidate/login.js"
     ],
-    "/login": [
+    "/candidate/tests/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/login.js"
-    ],
-    "/skills": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/skills.js"
+      "static/chunks/pages/candidate/tests/[id].js"
     ]
   },
   "ampFirstPages": []

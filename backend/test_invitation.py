@@ -18,7 +18,7 @@ def test_invite_candidates():
     
     # Test data
     invite_data = {
-        "assessment_id": "1",
+        "assessment_id": str(uuid.uuid4()),
         "candidates": [
             {"name": "Test User", "email": "test.user@example.com"},
             {"name": "Another User", "email": "another.user@example.com"}

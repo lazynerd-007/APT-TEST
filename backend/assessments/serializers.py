@@ -8,9 +8,11 @@ from .models import (
     Test, 
     AssessmentTest, 
     Question,
+    Answer,
     CandidateAssessment,
     CandidateTest,
-    CandidateSkillScore
+    CandidateSkillScore,
+    CandidateAnswer
 )
 from skills.serializers import SkillSerializer
 from skills.models import Skill
@@ -330,6 +332,44 @@ class CandidateSkillScoreSerializer(serializers.ModelSerializer):
             'assessment', 
             'score', 
             'created_at', 
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    """Serializer for the Answer model."""
+    
+    class Meta:
+        model = Answer
+        fields = [
+            'id',
+            'question',
+            'content',
+            'is_correct',
+            'explanation',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class CandidateAnswerSerializer(serializers.ModelSerializer):
+    """Serializer for the CandidateAnswer model."""
+    question_details = QuestionSerializer(source='question', read_only=True)
+    
+    class Meta:
+        model = CandidateAnswer
+        fields = [
+            'id',
+            'candidate_test',
+            'question',
+            'question_details',
+            'content',
+            'is_correct',
+            'score',
+            'feedback',
+            'created_at',
             'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at'] 

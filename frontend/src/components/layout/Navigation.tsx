@@ -50,6 +50,8 @@ const Navigation: React.FC<NavigationProps> = ({
       return [
         ...commonItems,
         { icon: <FaClipboardList />, label: 'Assessments', path: '/assessments' },
+        { icon: <FaClipboardList />, label: 'Tests', path: '/tests' },
+        { icon: <FaClipboardList />, label: 'Questions', path: '/questions' },
         { icon: <FaUsers />, label: 'Candidates', path: '/candidates' },
         { icon: <FaUsers />, label: 'Organizations', path: '/organizations' },
         { icon: <FaChartBar />, label: 'Analytics', path: '/analytics' },
@@ -59,6 +61,8 @@ const Navigation: React.FC<NavigationProps> = ({
       return [
         ...commonItems,
         { icon: <FaClipboardList />, label: 'Assessments', path: '/assessments' },
+        { icon: <FaClipboardList />, label: 'Tests', path: '/tests' },
+        { icon: <FaClipboardList />, label: 'Questions', path: '/questions' },
         { icon: <FaUsers />, label: 'Candidates', path: '/candidates' },
         { icon: <FaChartBar />, label: 'Analytics', path: '/analytics' },
         { icon: <FaCog />, label: 'Settings', path: '/settings' },

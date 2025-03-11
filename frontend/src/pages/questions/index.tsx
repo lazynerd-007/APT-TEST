@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FaPlus, FaEdit, FaTrash, FaUpload } from 'react-icons/fa';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import { assessmentsService } from '@/services/assessmentsService';
 import { Spinner, Button, Badge } from '@/components/ui';
 import { toast } from 'react-hot-toast';
@@ -13,16 +13,23 @@ const QuestionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [availableTests, setAvailableTests] = useState([]);
+  const [selectedTestId, setSelectedTestId] = useState(router.query.testId || '');
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [router.query.testId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const testId = router.query.testId as string;
+      setSelectedTestId(testId || '');
+      
+      // If a test ID is provided, fetch questions for that test
+      const params = testId ? { test: testId } : {};
+      
       const [questionsData, testsData] = await Promise.all([
-        assessmentsService.getQuestions(),
+        assessmentsService.getQuestions(params),
         assessmentsService.getTests(),
       ]);
       setQuestions(questionsData);
@@ -114,6 +121,49 @@ const QuestionsPage = () => {
               <FaPlus className="mr-2" />
               Add Question
             </Button>
+          </div>
+        </div>
+
+        {/* Test Filter */}
+        <div className="mb-6 bg-white rounded-lg shadow-soft p-4">
+          <div className="flex flex-col md:flex-row md:items-center">
+            <label htmlFor="test-filter" className="block text-sm font-medium text-gray-700 mb-2 md:mb-0 md:mr-4">
+              Filter by Test:
+            </label>
+            <div className="flex-grow">
+              <select
+                id="test-filter"
+                value={selectedTestId}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value) {
+                    router.push(`/questions?testId=${value}`);
+                  } else {
+                    router.push('/questions');
+                  }
+                }}
+                className="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">All Tests</option>
+                {availableTests.map((test) => (
+                  <option key={test.id} value={test.id}>
+                    {test.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedTestId && (
+              <div className="mt-2 md:mt-0 md:ml-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/questions')}
+                  className="flex items-center"
+                >
+                  Clear Filter
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

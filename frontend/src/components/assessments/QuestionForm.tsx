@@ -9,6 +9,11 @@ interface SkillOption {
   category: string;
 }
 
+interface TestOption {
+  id: string;
+  title: string;
+}
+
 interface QuestionFormProps {
   initialData?: {
     id?: string;
@@ -16,6 +21,7 @@ interface QuestionFormProps {
     type: 'mcq' | 'coding' | 'essay' | 'file_upload';
     difficulty: 'easy' | 'medium' | 'hard';
     points: number;
+    test?: string; // Test ID
     answers?: Array<{
       id?: string;
       content: string;
@@ -34,6 +40,7 @@ interface QuestionFormProps {
     }>;
   };
   availableSkills: SkillOption[];
+  availableTests: TestOption[];
   onSubmit: (data: any) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -41,6 +48,7 @@ interface QuestionFormProps {
 const QuestionForm: React.FC<QuestionFormProps> = ({
   initialData,
   availableSkills,
+  availableTests,
   onSubmit,
   isSubmitting = false,
 }) => {
@@ -53,6 +61,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     type: initialData?.type || 'mcq',
     difficulty: initialData?.difficulty || 'medium',
     points: initialData?.points || 1,
+    test: initialData?.test || '',
     answers: initialData?.answers || [
       { content: '', isCorrect: false, explanation: '' },
       { content: '', isCorrect: false, explanation: '' },
@@ -137,7 +146,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
 
   // Calculate total skill weight
   const totalSkillWeight = watch('skills').reduce(
-    (sum, skill) => sum + (parseFloat(skill.weight) || 0),
+    (sum, skill) => sum + (parseFloat(String(skill.weight)) || 0),
     0
   );
 
@@ -220,6 +229,35 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
       {/* Question Details */}
       <div className="bg-white rounded-lg shadow-soft p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Question Details</h2>
+        
+        {/* Test Selection */}
+        <div className="mb-4">
+          <label htmlFor="test" className="block text-sm font-medium text-gray-700 mb-1">
+            Test*
+          </label>
+          <select
+            id="test"
+            {...register('test', { required: 'Please select a test' })}
+            className={`w-full px-3 py-2 border rounded-md ${
+              errors.test ? 'border-danger-500' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Select a test</option>
+            {availableTests.map((test) => (
+              <option key={test.id} value={test.id}>
+                {test.title}
+              </option>
+            ))}
+          </select>
+          {errors.test && (
+            <p className="mt-1 text-sm text-danger-600">{errors.test.message?.toString()}</p>
+          )}
+          {availableTests.length === 0 && (
+            <p className="mt-1 text-sm text-warning-600">
+              No tests available. Please create a test first.
+            </p>
+          )}
+        </div>
         
         {/* Question Content */}
         {questionType !== 'coding' && (

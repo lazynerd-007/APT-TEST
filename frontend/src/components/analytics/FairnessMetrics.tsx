@@ -65,24 +65,12 @@ const FairnessMetrics: React.FC<FairnessMetricsProps> = ({
   
   const handleSaveBlindReviewSettings = () => {
     // In a real app, this would save settings to the backend
-    toast({
-      title: "Settings saved",
-      description: "Blind review settings have been updated successfully.",
-      status: "success",
-      duration: 5000,
-      isClosable: true,
-    });
+    toast.success("Blind review settings have been updated successfully.");
     
     // If blind review is enabled, apply the settings immediately
     if (blindReviewEnabled) {
       // In a real app, this would trigger an API call to apply settings
-      toast({
-        title: "Blind review active",
-        description: "Blind review has been applied to all subjective assessments.",
-        status: "info",
-        duration: 5000,
-        isClosable: true,
-      });
+      toast.success("Blind review active for all new assessments.");
     }
   };
 

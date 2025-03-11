@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import models
 from .models import (
     Assessment, 
     AssessmentSkill,
@@ -14,7 +15,9 @@ from .models import (
     Question,
     CandidateAssessment,
     CandidateTest,
-    CandidateSkillScore
+    CandidateSkillScore,
+    Answer,
+    CandidateAnswer
 )
 from .serializers import (
     AssessmentSerializer,
@@ -25,9 +28,16 @@ from .serializers import (
     QuestionSerializer,
     CandidateAssessmentSerializer,
     CandidateTestSerializer,
-    CandidateSkillScoreSerializer
+    CandidateSkillScoreSerializer,
+    AnswerSerializer,
+    CandidateAnswerSerializer
 )
 from skills.models import Skill
+import csv
+import json
+from django.http import HttpResponse
+from io import StringIO
+from django.utils import timezone
 
 
 class AssessmentViewSet(viewsets.ModelViewSet):
@@ -208,130 +218,128 @@ class QuestionViewSet(viewsets.ModelViewSet):
         
         return queryset
     
-    @action(detail=False, methods=['post'], url_path='upload-csv')
-    def upload_csv(self, request):
-        """Upload questions from a CSV file."""
-        import csv
-        import io
+    @action(detail=False, methods=['post'], url_path='import_csv')
+    def import_csv(self, request):
+        """Import questions from a CSV file."""
+        if 'file' not in request.FILES:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check if file and test_id are provided
-        if 'file' not in request.FILES or 'test_id' not in request.data:
-            return Response(
-                {'error': 'Both file and test_id are required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        file = request.FILES['file']
+        test_id = request.data.get('testId')
         
-        csv_file = request.FILES['file']
-        test_id = request.data['test_id']
+        if not test_id:
+            return Response({'error': 'Test ID is required'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check if the file is a CSV
-        if not csv_file.name.endswith('.csv'):
-            return Response(
-                {'error': 'File must be a CSV'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if the test exists
         try:
             test = Test.objects.get(id=test_id)
         except Test.DoesNotExist:
-            return Response(
-                {'error': 'Test not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Process the CSV file
-        try:
-            # Decode the file
-            csv_data = csv_file.read().decode('utf-8')
-            csv_reader = csv.DictReader(io.StringIO(csv_data))
-            
-            # Validate the CSV structure
-            required_fields = ['question_type', 'content', 'difficulty', 'points']
-            for field in required_fields:
-                if field not in csv_reader.fieldnames:
-                    return Response(
-                        {'error': f'CSV is missing required field: {field}'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            
-            # Process each row
-            questions_created = 0
-            errors = []
-            
-            for row_num, row in enumerate(csv_reader, start=2):  # Start from 2 to account for header row
-                try:
-                    # Validate question type
-                    question_type = row['question_type'].strip().lower()
-                    if question_type not in ['mcq', 'coding', 'essay', 'file_upload']:
-                        errors.append(f'Row {row_num}: Invalid question type "{question_type}"')
-                        continue
-                    
-                    # Validate difficulty
-                    difficulty = row['difficulty'].strip().lower()
-                    if difficulty not in ['easy', 'medium', 'hard']:
-                        errors.append(f'Row {row_num}: Invalid difficulty "{difficulty}"')
-                        continue
-                    
-                    # Validate points
+        # Decode the file content
+        content = file.read().decode('utf-8')
+        csv_data = csv.DictReader(StringIO(content))
+        
+        questions_created = 0
+        errors = []
+        
+        for row_num, row in enumerate(csv_data, start=2):  # Start from 2 to account for header row
+            try:
+                # Get the required fields
+                content = row.get('content', '').strip()
+                question_type = row.get('type', '').strip().lower()
+                
+                # Validate required fields
+                if not content:
+                    errors.append(f'Row {row_num}: Content is required')
+                    continue
+                
+                if question_type not in ['mcq', 'coding', 'essay', 'file_upload']:
+                    errors.append(f'Row {row_num}: Invalid question type. Must be one of: mcq, coding, essay, file_upload')
+                    continue
+                
+                # Get optional fields with defaults
+                points = int(row.get('points', 1))
+                difficulty = row.get('difficulty', 'medium').strip().lower()
+                
+                # Validate difficulty
+                if difficulty not in ['easy', 'medium', 'hard']:
+                    difficulty = 'medium'
+                
+                # Get the current max order for questions in this test
+                max_order = Question.objects.filter(test=test).aggregate(models.Max('order'))['order__max'] or 0
+                
+                # Create the question
+                question = Question.objects.create(
+                    test=test,
+                    content=content,
+                    question_type=question_type,
+                    points=points,
+                    difficulty=difficulty,
+                    order=max_order + 1
+                )
+                
+                # Handle answers for MCQ questions
+                if question_type == 'mcq' and row.get('answers'):
                     try:
-                        points = int(row['points'])
-                        if points < 1:
-                            errors.append(f'Row {row_num}: Points must be a positive integer')
-                            continue
-                    except ValueError:
-                        errors.append(f'Row {row_num}: Points must be a number')
-                        continue
-                    
-                    # Create the question
-                    question = Question.objects.create(
-                        test=test,
-                        content=row['content'].strip(),
-                        type=question_type,
-                        difficulty=difficulty,
-                        points=points
-                    )
-                    
-                    # For MCQ questions, process answers
-                    if question_type == 'mcq' and 'answers' in row and row['answers']:
-                        answers = [ans.strip() for ans in row['answers'].split(',')]
-                        
-                        # Process correct answers
-                        correct_answers = []
-                        if 'correct_answers' in row and row['correct_answers']:
-                            try:
-                                # Can be a comma-separated list of indices or a single index
-                                correct_indices = [int(idx.strip()) for idx in row['correct_answers'].split(',')]
-                                correct_answers = [answers[idx] for idx in correct_indices if 0 <= idx < len(answers)]
-                            except (ValueError, IndexError):
-                                errors.append(f'Row {row_num}: Invalid correct_answers format')
-                        
-                        # Create answer objects
-                        for answer_text in answers:
-                            Answer.objects.create(
-                                question=question,
-                                content=answer_text,
-                                is_correct=answer_text in correct_answers,
-                                explanation=row.get('explanation', '')
+                        answers_data = json.loads(row.get('answers', '[]'))
+                        for answer_data in answers_data:
+                            question.answers.create(
+                                content=answer_data.get('content', ''),
+                                is_correct=answer_data.get('is_correct', False)
                             )
-                    
-                    questions_created += 1
-                    
-                except Exception as e:
-                    errors.append(f'Row {row_num}: {str(e)}')
+                    except json.JSONDecodeError:
+                        errors.append(f'Row {row_num}: Invalid JSON format for answers')
+                
+                questions_created += 1
+                
+            except Exception as e:
+                errors.append(f'Row {row_num}: {str(e)}')
+        
+        response_data = {
+            'success': True,
+            'questions_created': questions_created,
+        }
+        
+        if errors:
+            response_data['errors'] = errors
             
-            # Return the results
-            return Response({
-                'success': True,
-                'questions_created': questions_created,
-                'errors': errors
-            }, status=status.HTTP_201_CREATED if questions_created > 0 else status.HTTP_400_BAD_REQUEST)
+        return Response(response_data, status=status.HTTP_201_CREATED if questions_created > 0 else status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'], url_path='tests/(?P<test_id>[^/.]+)/export_questions')
+    def export_questions(self, request, test_id=None):
+        """Export questions for a test as CSV."""
+        try:
+            test = Test.objects.get(id=test_id)
+        except Test.DoesNotExist:
+            return Response({'error': 'Test not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get all questions for the test
+        questions = Question.objects.filter(test=test).order_by('order')
+        
+        # Create a CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{test.title}_questions.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['content', 'type', 'points', 'difficulty', 'answers'])
+        
+        for question in questions:
+            # For MCQ questions, include the answers
+            answers_json = '[]'
+            if question.question_type == 'mcq':
+                answers = question.answers.all()
+                answers_data = [{'content': answer.content, 'is_correct': answer.is_correct} for answer in answers]
+                answers_json = json.dumps(answers_data)
             
-        except Exception as e:
-            return Response(
-                {'error': f'Error processing CSV: {str(e)}'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            writer.writerow([
+                question.content,
+                question.question_type,
+                question.points,
+                question.difficulty,
+                answers_json
+            ])
+        
+        return response
 
 
 class CandidateAssessmentViewSet(viewsets.ModelViewSet):
@@ -394,20 +402,132 @@ class CandidateTestViewSet(viewsets.ModelViewSet):
     ordering_fields = ['start_time', 'end_time', 'score', 'created_at']
     
     def get_queryset(self):
-        """Filter candidate tests by user role."""
+        """Filter candidate tests by candidate."""
         queryset = super().get_queryset()
-        user = self.request.user
+        candidate = self.request.query_params.get('candidate', None)
+        if candidate:
+            queryset = queryset.filter(candidate_assessment__candidate=candidate)
+        return queryset
+    
+    @action(detail=True, methods=['post'], url_path='answers')
+    def submit_answer(self, request, pk=None):
+        """Submit an answer for a question in this test."""
+        candidate_test = self.get_object()
         
-        # If user is a candidate, only show their tests
-        if not user.is_staff and user.role == 'candidate':
-            queryset = queryset.filter(candidate_assessment__candidate=user)
-        # If user is not admin, only show tests from their organization
-        elif not user.is_staff:
-            queryset = queryset.filter(
-                candidate_assessment__assessment__organization=user.organization
+        # Check if the test is in progress
+        if candidate_test.status != 'in_progress':
+            return Response(
+                {'error': 'Cannot submit answers for a test that is not in progress'},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
-        return queryset
+        # Get the question ID from the request data
+        question_id = request.data.get('question_id')
+        if not question_id:
+            return Response(
+                {'error': 'Question ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            question = Question.objects.get(id=question_id)
+        except Question.DoesNotExist:
+            return Response(
+                {'error': 'Question not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if the question belongs to the test
+        if question.test.id != candidate_test.test.id:
+            return Response(
+                {'error': 'Question does not belong to this test'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get or create the candidate answer
+        candidate_answer, created = CandidateAnswer.objects.get_or_create(
+            candidate_test=candidate_test,
+            question=question,
+            defaults={
+                'content': request.data.get('content', ''),
+                'is_correct': False,
+                'score': 0
+            }
+        )
+        
+        # Update the answer content
+        candidate_answer.content = request.data.get('content', '')
+        
+        # For MCQ questions, check if the answer is correct
+        if question.question_type == 'mcq':
+            selected_answer_id = request.data.get('content')
+            if selected_answer_id:
+                try:
+                    selected_answer = Answer.objects.get(id=selected_answer_id)
+                    candidate_answer.is_correct = selected_answer.is_correct
+                    candidate_answer.score = question.points if selected_answer.is_correct else 0
+                except Answer.DoesNotExist:
+                    candidate_answer.is_correct = False
+                    candidate_answer.score = 0
+        
+        candidate_answer.save()
+        
+        return Response(
+            CandidateAnswerSerializer(candidate_answer).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['get'], url_path='answers')
+    def get_answers(self, request, pk=None):
+        """Get all answers for this candidate test."""
+        candidate_test = self.get_object()
+        answers = CandidateAnswer.objects.filter(candidate_test=candidate_test)
+        return Response(CandidateAnswerSerializer(answers, many=True).data)
+    
+    @action(detail=True, methods=['post'], url_path='submit')
+    def submit_test(self, request, pk=None):
+        """Submit the test and calculate the score."""
+        candidate_test = self.get_object()
+        
+        # Check if the test is in progress
+        if candidate_test.status != 'in_progress':
+            return Response(
+                {'error': 'Cannot submit a test that is not in progress'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update the test status and end time
+        candidate_test.status = 'completed'
+        candidate_test.end_time = timezone.now()
+        
+        # Calculate the score
+        answers = CandidateAnswer.objects.filter(candidate_test=candidate_test)
+        total_points = sum(answer.question.points for answer in answers)
+        scored_points = sum(answer.score for answer in answers)
+        
+        if total_points > 0:
+            candidate_test.score = (scored_points / total_points) * 100
+        else:
+            candidate_test.score = 0
+        
+        candidate_test.save()
+        
+        # Check if all tests in the assessment are completed
+        assessment = candidate_test.candidate_assessment
+        all_tests = CandidateTest.objects.filter(candidate_assessment=assessment)
+        all_completed = all(test.status == 'completed' for test in all_tests)
+        
+        if all_completed:
+            # Calculate the assessment score
+            assessment.status = 'completed'
+            assessment.end_time = timezone.now()
+            
+            total_test_scores = sum(test.score or 0 for test in all_tests)
+            assessment.score = total_test_scores / all_tests.count() if all_tests.count() > 0 else 0
+            
+            assessment.save()
+        
+        return Response(CandidateTestSerializer(candidate_test).data)
 
 
 class CandidateSkillScoreViewSet(viewsets.ModelViewSet):

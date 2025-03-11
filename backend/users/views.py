@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from .models import User
+from .models import User, Role
 from .serializers import UserSerializer
 from .services import invite_candidates
 from django.utils import timezone
@@ -205,4 +205,39 @@ class UserViewSet(viewsets.ModelViewSet):
                 'is_staff': request.user.is_staff,
                 'is_superuser': request.user.is_superuser
             }
-        }) 
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def create_demo_user(self, request):
+        """Create a demo user for testing purposes."""
+        # Check if demo user already exists
+        demo_email = 'demo.candidate@example.com'
+        
+        try:
+            user = User.objects.get(email=demo_email)
+            # If user exists, return it
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            # Create a new demo user directly using the User model
+            # Get or create the candidate role
+            candidate_role, created = Role.objects.get_or_create(
+                name='candidate',
+                defaults={'permissions': {}}
+            )
+            
+            # Create the user directly
+            user = User.objects.create(
+                email=demo_email,
+                first_name='Demo',
+                last_name='Candidate',
+                role=candidate_role
+            )
+            
+            # Set password
+            user.set_password('demopassword')
+            user.save()
+            
+            # Return the serialized user
+            serializer = self.get_serializer(user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED) 
