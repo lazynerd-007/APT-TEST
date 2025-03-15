@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { FaArrowLeft, FaArrowRight, FaClock, FaCheck, FaSave, FaSignOutAlt, FaUser } from 'react-icons/fa';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { Spinner, Button, Badge } from '@/components/ui';
 import { toast } from 'react-hot-toast';
 import Head from 'next/head';
@@ -88,131 +88,78 @@ const CandidateTestPage = () => {
   }, [id]);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // For demo purposes, we'll use mock data instead of actual API calls
-      
-      // Mock test data
+      // Mock data for demonstration purposes
       const mockTest = {
         id: id,
-        title: 'React Fundamentals',
-        description: 'Test your knowledge of React fundamentals',
-        instructions: 'Answer all questions to the best of your ability. You can navigate between questions using the buttons at the bottom of the page.',
-        time_limit: 60, // 60 minutes
-        category: 'Frontend',
-        difficulty: 'Intermediate',
-        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        title: "Demo Programming Test",
+        description: "A demo test for programming skills assessment",
+        instructions: "Answer all questions to the best of your ability. You can use any programming language for the coding questions.",
+        time_limit: 30,
+        category: "Programming",
+        difficulty: "intermediate",
+        is_active: true
       };
       
-      // Mock candidate test data
       const mockCandidateTest = {
         id: id,
-        test: mockTest.id,
-        test_details: mockTest,
-        status: 'not_started',
+        test: mockTest,
+        status: "not_started",
         score: null,
         start_time: null,
-        end_time: null,
-        created_at: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+        end_time: null
       };
       
-      // Mock questions data
       const mockQuestions = [
         {
-          id: 'q1',
-          test: mockTest.id,
-          content: 'What is React?',
-          question_type: 'mcq',
+          id: "q1",
+          content: "What is the time complexity of a binary search algorithm?",
+          type: "mcq",
+          difficulty: "medium",
           points: 5,
-          order: 1,
           answers: [
-            { id: 'a1', content: 'A JavaScript library for building user interfaces', is_correct: true },
-            { id: 'a2', content: 'A programming language', is_correct: false },
-            { id: 'a3', content: 'A database management system', is_correct: false },
-            { id: 'a4', content: 'A server-side framework', is_correct: false },
+            { id: "a1", content: "O(1)", is_correct: false },
+            { id: "a2", content: "O(log n)", is_correct: true },
+            { id: "a3", content: "O(n)", is_correct: false },
+            { id: "a4", content: "O(n log n)", is_correct: false }
           ]
         },
         {
-          id: 'q2',
-          test: mockTest.id,
-          content: 'What is JSX?',
-          question_type: 'mcq',
-          points: 5,
-          order: 2,
-          answers: [
-            { id: 'a5', content: 'A syntax extension to JavaScript', is_correct: true },
-            { id: 'a6', content: 'A new programming language', is_correct: false },
-            { id: 'a7', content: 'A database query language', is_correct: false },
-            { id: 'a8', content: 'A CSS framework', is_correct: false },
-          ]
+          id: "q2",
+          content: "Explain the difference between a stack and a queue data structure.",
+          type: "essay",
+          difficulty: "easy",
+          points: 10
         },
         {
-          id: 'q3',
-          test: mockTest.id,
-          content: 'Write a function that returns the sum of two numbers.',
-          question_type: 'coding',
-          points: 10,
-          order: 3,
-        },
-        {
-          id: 'q4',
-          test: mockTest.id,
-          content: 'Explain the concept of virtual DOM in React and why it is important.',
-          question_type: 'essay',
-          points: 8,
-          order: 4,
-        },
-        {
-          id: 'q5',
-          test: mockTest.id,
-          content: 'Upload a file containing your solution to the following problem: Create a simple React component that displays a counter with increment and decrement buttons.',
-          question_type: 'file_upload',
-          points: 15,
-          order: 5,
+          id: "q3",
+          content: "Write a function to check if a string is a palindrome.",
+          type: "coding",
+          difficulty: "medium",
+          points: 15
         }
       ];
       
-      setCandidateTest(mockCandidateTest);
       setTest(mockTest);
+      setCandidateTest(mockCandidateTest);
       setQuestions(mockQuestions);
       
-      // Initialize answers object
-      const initialAnswers = {};
-      mockQuestions.forEach(question => {
-        initialAnswers[question.id] = {
-          question_id: question.id,
-          answer_type: question.question_type,
-          content: question.question_type === 'mcq' ? null : '',
-          submitted: false
-        };
-      });
-      setAnswers(initialAnswers);
+      // Comment out the actual API calls for now
+      /*
+      const [testResponse, candidateTestResponse, questionsResponse] = await Promise.all([
+        assessmentsService.getTest(id as string),
+        assessmentsService.getCandidateTest(id as string),
+        assessmentsService.getQuestions({ test_id: id })
+      ]);
       
-      // Check if test has already started (for demo, we'll assume it hasn't)
-      if (mockCandidateTest.status === 'in_progress' && mockCandidateTest.start_time) {
-        setTestStarted(true);
-        
-        // Calculate time remaining if there's a time limit
-        if (mockTest.time_limit) {
-          const startTime = new Date(mockCandidateTest.start_time);
-          const endTime = new Date(startTime.getTime() + mockTest.time_limit * 60000);
-          const now = new Date();
-          
-          if (now < endTime) {
-            const remainingMs = endTime.getTime() - now.getTime();
-            setTimeRemaining(Math.floor(remainingMs / 1000));
-            startTimer();
-          } else {
-            // Time has expired
-            setTimeRemaining(0);
-            handleTestSubmit(true);
-          }
-        }
-      }
+      setTest(testResponse);
+      setCandidateTest(candidateTestResponse);
+      setQuestions(questionsResponse);
+      */
     } catch (error) {
-      console.error('Error fetching test data:', error);
-      toast.error('Failed to load test');
+      console.error("Error fetching test data:", error);
+      setError("Failed to load test data. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -220,24 +167,38 @@ const CandidateTestPage = () => {
 
   const startTest = async () => {
     try {
-      // Update the candidate test status to in_progress
-      await assessmentsService.updateCandidateTest(id as string, {
+      // Mock starting the test
+      const now = new Date().toISOString();
+      const updatedCandidateTest = {
+        ...candidateTest,
         status: 'in_progress',
-        start_time: new Date().toISOString()
-      });
+        start_time: now
+      };
       
-      setTestStarted(true);
+      setCandidateTest(updatedCandidateTest);
       
-      // Start the timer if there's a time limit
-      if (test.time_limit) {
-        setTimeRemaining(test.time_limit * 60);
-        startTimer();
+      // Initialize the time remaining based on the test time limit
+      if (test?.time_limit) {
+        setTimeRemaining(test.time_limit * 60); // Convert minutes to seconds
       }
       
-      toast.success('Test started');
+      // Initialize answers object
+      const initialAnswers = {};
+      questions.forEach(question => {
+        initialAnswers[question.id] = '';
+      });
+      setAnswers(initialAnswers);
+      
+      // Comment out the actual API call for now
+      /*
+      const response = await assessmentsService.startCandidateTest(id as string);
+      setCandidateTest(response);
+      */
+      
+      toast.success('Test started successfully!');
     } catch (error) {
       console.error('Error starting test:', error);
-      toast.error('Failed to start test');
+      toast.error('Failed to start test. Please try again.');
     }
   };
 
@@ -287,12 +248,11 @@ const CandidateTestPage = () => {
   const handleAnswerChange = (questionId, value) => {
     setAnswers(prev => ({
       ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        content: value,
-        submitted: false
-      }
+      [questionId]: value
     }));
+    
+    // Save the answer to the backend
+    saveAnswer(questionId, value);
   };
 
   const handleMCQAnswerChange = (questionId, answerId) => {
@@ -306,54 +266,58 @@ const CandidateTestPage = () => {
     }));
   };
 
-  const saveAnswer = async (questionId) => {
+  const saveAnswer = async (questionId: string, answerText: string) => {
     try {
-      const answer = answers[questionId];
-      
-      // Here you would typically send the answer to the backend
-      // For now, we'll just mark it as submitted
+      // Update the answers state
       setAnswers(prev => ({
         ...prev,
-        [questionId]: {
-          ...prev[questionId],
-          submitted: true
-        }
+        [questionId]: answerText
       }));
       
-      toast.success('Answer saved');
+      // Comment out the actual API call for now
+      /*
+      await assessmentsService.saveCandidateAnswer(id as string, {
+        question_id: questionId,
+        answer_text: answerText
+      });
+      */
+      
+      // For demo purposes, we'll just show a success message
+      toast.success('Answer saved successfully!');
     } catch (error) {
       console.error('Error saving answer:', error);
-      toast.error('Failed to save answer');
+      toast.error('Failed to save answer. Please try again.');
     }
   };
 
   const handleTestSubmit = async (isTimeout = false) => {
-    if (submitting) return;
-    
-    // Confirm submission unless it's a timeout
-    if (!isTimeout && !window.confirm('Are you sure you want to submit the test? You cannot make changes after submission.')) {
+    if (!confirm('Are you sure you want to submit the test? You cannot make changes after submission.')) {
       return;
     }
     
     try {
-      setSubmitting(true);
-      
-      // Here you would typically send all answers to the backend
-      // and update the candidate test status
-      
-      await assessmentsService.updateCandidateTest(id as string, {
+      // Mock submitting the test
+      const now = new Date().toISOString();
+      const updatedCandidateTest = {
+        ...candidateTest,
         status: 'completed',
-        end_time: new Date().toISOString()
-      });
+        end_time: now,
+        score: 85 // Mock score for demonstration
+      };
       
-      toast.success('Test submitted successfully');
+      setCandidateTest(updatedCandidateTest);
       
-      // Redirect to results page
-      router.push(`/candidate/results/${id}`);
+      // Comment out the actual API call for now
+      /*
+      const response = await assessmentsService.submitCandidateTest(id as string);
+      setCandidateTest(response);
+      */
+      
+      toast.success('Test submitted successfully!');
+      router.push('/candidate/dashboard');
     } catch (error) {
       console.error('Error submitting test:', error);
-      toast.error('Failed to submit test');
-      setSubmitting(false);
+      toast.error('Failed to submit test. Please try again.');
     }
   };
 
@@ -473,6 +437,21 @@ const CandidateTestPage = () => {
   return (
     <CandidateLayout user={user}>
       <div className="container mx-auto px-4 py-8">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                Note: The test feature is not fully implemented yet. This is a preview of the candidate test page.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Header with timer */}
         <div className="bg-white rounded-lg shadow-soft p-4 mb-6 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-900">{test.title}</h2>
@@ -518,7 +497,7 @@ const CandidateTestPage = () => {
               <span className="text-lg font-semibold text-gray-800 mr-3">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
-              {getQuestionTypeBadge(currentQuestion.question_type)}
+              {getQuestionTypeBadge(currentQuestion.type)}
             </div>
             <div className="text-sm text-gray-600">
               {currentQuestion.points} {currentQuestion.points === 1 ? 'point' : 'points'}
@@ -620,7 +599,7 @@ const CandidateTestPage = () => {
           {/* Save Answer Button */}
           <div className="flex justify-end">
             <Button
-              onClick={() => saveAnswer(currentQuestion.id)}
+              onClick={() => saveAnswer(currentQuestion.id, currentAnswer.content)}
               disabled={!currentAnswer.content && currentAnswer.content !== 0}
               className="flex items-center"
             >

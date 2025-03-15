@@ -17,7 +17,8 @@ from .models import (
     CandidateTest,
     CandidateSkillScore,
     Answer,
-    CandidateAnswer
+    CandidateAnswer,
+    TestLibrary
 )
 from .serializers import (
     AssessmentSerializer,
@@ -189,6 +190,164 @@ class TestViewSet(viewsets.ModelViewSet):
         questions = Question.objects.filter(test=test)
         serializer = QuestionSerializer(questions, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def generate_demo_test(self, request):
+        """Generate a demo test with sample questions for testing purposes."""
+        # Get or create a demo user
+        from users.models import User, Organization, Role
+        
+        # Get or create a candidate role
+        candidate_role, _ = Role.objects.get_or_create(name='Candidate')
+        
+        # Get or create a demo organization
+        demo_org, _ = Organization.objects.get_or_create(
+            name='Demo Organization',
+            defaults={
+                'description': 'Organization for demo purposes',
+                'website': 'https://example.com',
+                'industry': 'Technology'
+            }
+        )
+        
+        # Get or create a demo user
+        demo_user, _ = User.objects.get_or_create(
+            email='demo.employer@example.com',
+            defaults={
+                'first_name': 'Demo',
+                'last_name': 'Employer',
+                'is_active': True,
+                'organization': demo_org,
+                'role': candidate_role
+            }
+        )
+        
+        # Create a test library
+        test_library = TestLibrary.objects.create(
+            title='Demo Programming Test Library',
+            description='A demo test library for programming skills assessment',
+            creator=demo_user,
+            category='Programming',
+            difficulty='intermediate',
+            is_public=True
+        )
+        
+        # Create a demo test
+        test = Test.objects.create(
+            title='Demo Programming Test',
+            description='A demo test for programming skills assessment',
+            instructions='Answer all questions to the best of your ability. You can use any programming language for the coding questions.',
+            time_limit=30,  # 30 minutes
+            category='Programming',
+            difficulty='intermediate',
+            created_by=demo_user,
+            organization=demo_org,
+            is_active=True
+        )
+        
+        # Create sample questions
+        questions = [
+            {
+                'content': 'What is the time complexity of a binary search algorithm?',
+                'type': 'mcq',
+                'difficulty': 'medium',
+                'points': 5,
+                'answers': [
+                    {'content': 'O(1)', 'is_correct': False},
+                    {'content': 'O(log n)', 'is_correct': True},
+                    {'content': 'O(n)', 'is_correct': False},
+                    {'content': 'O(n log n)', 'is_correct': False}
+                ]
+            },
+            {
+                'content': 'Explain the difference between a stack and a queue data structure.',
+                'type': 'essay',
+                'difficulty': 'easy',
+                'points': 10
+            },
+            {
+                'content': 'Write a function to check if a string is a palindrome.',
+                'type': 'coding',
+                'difficulty': 'medium',
+                'points': 15
+            }
+        ]
+        
+        # Create the questions and answers
+        for i, q_data in enumerate(questions):
+            question = Question.objects.create(
+                test=test_library,  # Use test_library instead of test
+                content=q_data['content'],
+                type=q_data['type'],
+                difficulty=q_data['difficulty'],
+                points=q_data['points']
+            )
+            
+            # Create answers for MCQ questions
+            if q_data['type'] == 'mcq' and 'answers' in q_data:
+                for a_data in q_data['answers']:
+                    Answer.objects.create(
+                        question=question,
+                        content=a_data['content'],
+                        is_correct=a_data['is_correct']
+                    )
+        
+        # Create a candidate assessment and test
+        from users.models import User
+        
+        # Get or create a demo candidate
+        demo_candidate, _ = User.objects.get_or_create(
+            email='demo.candidate@example.com',
+            defaults={
+                'first_name': 'Demo',
+                'last_name': 'Candidate',
+                'is_active': True,
+                'organization': demo_org,
+                'role': candidate_role
+            }
+        )
+        
+        # Create an assessment
+        assessment = Assessment.objects.create(
+            title='Demo Programming Assessment',
+            description='A demo assessment for programming skills',
+            time_limit=60,  # 60 minutes
+            passing_score=70,
+            created_by=demo_user,
+            organization=demo_org,
+            is_active=True
+        )
+        
+        # Link the test to the assessment
+        assessment_test = AssessmentTest.objects.create(
+            assessment=assessment,
+            test=test,
+            weight=100,
+            order=1
+        )
+        
+        # Create a candidate assessment
+        candidate_assessment = CandidateAssessment.objects.create(
+            candidate=demo_candidate,
+            assessment=assessment,
+            status='not_started'
+        )
+        
+        # Create a candidate test
+        candidate_test = CandidateTest.objects.create(
+            candidate_assessment=candidate_assessment,
+            test=test,
+            status='not_started'
+        )
+        
+        return Response({
+            'message': 'Demo test generated successfully',
+            'test_id': test.id,
+            'test_library_id': test_library.id,
+            'assessment_id': assessment.id,
+            'candidate_assessment_id': candidate_assessment.id,
+            'candidate_test_id': candidate_test.id
+        }, status=status.HTTP_201_CREATED)
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -198,7 +357,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     # For development purposes, allow unauthenticated access
     permission_classes = []  # Empty list means no permission required
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['test', 'question_type']
+    filterset_fields = ['test', 'type']
     search_fields = ['title', 'description']
     ordering_fields = ['order', 'points', 'created_at']
     
@@ -272,7 +431,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
                 question = Question.objects.create(
                     test=test,
                     content=content,
-                    question_type=question_type,
+                    type=question_type,
                     points=points,
                     difficulty=difficulty,
                     order=max_order + 1
@@ -326,14 +485,14 @@ class QuestionViewSet(viewsets.ModelViewSet):
         for question in questions:
             # For MCQ questions, include the answers
             answers_json = '[]'
-            if question.question_type == 'mcq':
+            if question.type == 'mcq':
                 answers = question.answers.all()
                 answers_data = [{'content': answer.content, 'is_correct': answer.is_correct} for answer in answers]
                 answers_json = json.dumps(answers_data)
             
             writer.writerow([
                 question.content,
-                question.question_type,
+                question.type,
                 question.points,
                 question.difficulty,
                 answers_json
@@ -409,6 +568,163 @@ class CandidateTestViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(candidate_assessment__candidate=candidate)
         return queryset
     
+    @action(detail=True, methods=['post'])
+    def start(self, request, pk=None):
+        """Start a test for a candidate."""
+        candidate_test = self.get_object()
+        
+        # Check if the test is already started or completed
+        if candidate_test.status != 'not_started':
+            return Response(
+                {'error': f'Test is already {candidate_test.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update the test status and start time
+        candidate_test.status = 'in_progress'
+        candidate_test.start_time = timezone.now()
+        candidate_test.save()
+        
+        return Response(
+            CandidateTestSerializer(candidate_test).data,
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['post'])
+    def save_answer(self, request, pk=None):
+        """Save an answer for a question in this test."""
+        candidate_test = self.get_object()
+        
+        # Check if the test is in progress
+        if candidate_test.status != 'in_progress':
+            return Response(
+                {'error': 'Cannot save answers for a test that is not in progress'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the question ID from the request data
+        question_id = request.data.get('question_id')
+        if not question_id:
+            return Response(
+                {'error': 'Question ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            question = Question.objects.get(id=question_id)
+        except Question.DoesNotExist:
+            return Response(
+                {'error': 'Question not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if the question belongs to the test
+        if question.test.id != candidate_test.test.id:
+            return Response(
+                {'error': 'Question does not belong to this test'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get or create the candidate answer
+        candidate_answer, created = CandidateAnswer.objects.get_or_create(
+            candidate_test=candidate_test,
+            question=question,
+            defaults={
+                'content': request.data.get('answer_text', ''),
+                'is_correct': False,
+                'score': 0
+            }
+        )
+        
+        # Update the answer content
+        candidate_answer.content = request.data.get('answer_text', '')
+        
+        # For MCQ questions, check if the answer is correct
+        if question.type == 'mcq':
+            selected_answer_id = request.data.get('answer_text')
+            if selected_answer_id:
+                try:
+                    selected_answer = Answer.objects.get(id=selected_answer_id)
+                    candidate_answer.is_correct = selected_answer.is_correct
+                    candidate_answer.score = question.points if selected_answer.is_correct else 0
+                except Answer.DoesNotExist:
+                    candidate_answer.is_correct = False
+                    candidate_answer.score = 0
+        
+        candidate_answer.save()
+        
+        return Response(
+            CandidateAnswerSerializer(candidate_answer).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        """Submit a completed test."""
+        candidate_test = self.get_object()
+        
+        # Check if the test is in progress
+        if candidate_test.status != 'in_progress':
+            return Response(
+                {'error': 'Cannot submit a test that is not in progress'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update the test status and end time
+        candidate_test.status = 'completed'
+        candidate_test.end_time = timezone.now()
+        
+        # Calculate the score
+        total_points = 0
+        earned_points = 0
+        
+        # Get all questions for this test
+        questions = Question.objects.filter(test=candidate_test.test)
+        
+        # Get all answers for this candidate test
+        answers = CandidateAnswer.objects.filter(candidate_test=candidate_test)
+        
+        # Calculate the score
+        for question in questions:
+            total_points += question.points
+            
+            # Find the answer for this question
+            answer = next((a for a in answers if a.question.id == question.id), None)
+            
+            if answer and answer.is_correct:
+                earned_points += question.points
+        
+        # Calculate the percentage score
+        if total_points > 0:
+            candidate_test.score = (earned_points / total_points) * 100
+        else:
+            candidate_test.score = 0
+        
+        candidate_test.save()
+        
+        # Update the candidate assessment status if all tests are completed
+        candidate_assessment = candidate_test.candidate_assessment
+        all_tests_completed = all(
+            test.status == 'completed' 
+            for test in CandidateTest.objects.filter(candidate_assessment=candidate_assessment)
+        )
+        
+        if all_tests_completed:
+            candidate_assessment.status = 'completed'
+            candidate_assessment.end_time = timezone.now()
+            
+            # Calculate the overall assessment score
+            assessment_tests = CandidateTest.objects.filter(candidate_assessment=candidate_assessment)
+            if assessment_tests.exists():
+                candidate_assessment.score = sum(test.score or 0 for test in assessment_tests) / assessment_tests.count()
+            
+            candidate_assessment.save()
+        
+        return Response(
+            CandidateTestSerializer(candidate_test).data,
+            status=status.HTTP_200_OK
+        )
+    
     @action(detail=True, methods=['post'], url_path='answers')
     def submit_answer(self, request, pk=None):
         """Submit an answer for a question in this test."""
@@ -459,7 +775,7 @@ class CandidateTestViewSet(viewsets.ModelViewSet):
         candidate_answer.content = request.data.get('content', '')
         
         # For MCQ questions, check if the answer is correct
-        if question.question_type == 'mcq':
+        if question.type == 'mcq':
             selected_answer_id = request.data.get('content')
             if selected_answer_id:
                 try:
@@ -483,51 +799,6 @@ class CandidateTestViewSet(viewsets.ModelViewSet):
         candidate_test = self.get_object()
         answers = CandidateAnswer.objects.filter(candidate_test=candidate_test)
         return Response(CandidateAnswerSerializer(answers, many=True).data)
-    
-    @action(detail=True, methods=['post'], url_path='submit')
-    def submit_test(self, request, pk=None):
-        """Submit the test and calculate the score."""
-        candidate_test = self.get_object()
-        
-        # Check if the test is in progress
-        if candidate_test.status != 'in_progress':
-            return Response(
-                {'error': 'Cannot submit a test that is not in progress'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Update the test status and end time
-        candidate_test.status = 'completed'
-        candidate_test.end_time = timezone.now()
-        
-        # Calculate the score
-        answers = CandidateAnswer.objects.filter(candidate_test=candidate_test)
-        total_points = sum(answer.question.points for answer in answers)
-        scored_points = sum(answer.score for answer in answers)
-        
-        if total_points > 0:
-            candidate_test.score = (scored_points / total_points) * 100
-        else:
-            candidate_test.score = 0
-        
-        candidate_test.save()
-        
-        # Check if all tests in the assessment are completed
-        assessment = candidate_test.candidate_assessment
-        all_tests = CandidateTest.objects.filter(candidate_assessment=assessment)
-        all_completed = all(test.status == 'completed' for test in all_tests)
-        
-        if all_completed:
-            # Calculate the assessment score
-            assessment.status = 'completed'
-            assessment.end_time = timezone.now()
-            
-            total_test_scores = sum(test.score or 0 for test in all_tests)
-            assessment.score = total_test_scores / all_tests.count() if all_tests.count() > 0 else 0
-            
-            assessment.save()
-        
-        return Response(CandidateTestSerializer(candidate_test).data)
 
 
 class CandidateSkillScoreViewSet(viewsets.ModelViewSet):

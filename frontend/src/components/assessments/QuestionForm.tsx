@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { FaPlus, FaTrash, FaCode, FaList, FaPen, FaFile, FaCheck } from 'react-icons/fa';
 import CodeEditor from '../CodeEditor';
@@ -72,6 +72,9 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     skills: initialData?.skills || [],
   };
 
+  console.log('QuestionForm initialData:', initialData);
+  console.log('QuestionForm defaultValues:', defaultValues);
+
   const {
     register,
     handleSubmit,
@@ -84,6 +87,9 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   });
 
   const questionType = watch('type');
+  const selectedTest = watch('test');
+
+  console.log('QuestionForm selected test:', selectedTest);
 
   const {
     fields: answerFields,
@@ -149,6 +155,18 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     (sum, skill) => sum + (parseFloat(String(skill.weight)) || 0),
     0
   );
+
+  useEffect(() => {
+    // Set the test value if it's provided in initialData
+    if (initialData?.test) {
+      setValue('test', initialData.test);
+      console.log('Setting test value to:', initialData.test);
+    }
+  }, [initialData, setValue]);
+
+  // Ensure availableTests is always an array
+  const safeAvailableTests = Array.isArray(availableTests) ? availableTests : [];
+  const safeAvailableSkills = Array.isArray(availableSkills) ? availableSkills : [];
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
@@ -235,26 +253,37 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
           <label htmlFor="test" className="block text-sm font-medium text-gray-700 mb-1">
             Test*
           </label>
+          {console.log('Available tests in QuestionForm:', safeAvailableTests)}
           <select
             id="test"
             {...register('test', { required: 'Please select a test' })}
             className={`w-full px-3 py-2 border rounded-md ${
               errors.test ? 'border-danger-500' : 'border-gray-300'
             }`}
+            disabled={initialData?.test ? true : false}
           >
             <option value="">Select a test</option>
-            {availableTests.map((test) => (
-              <option key={test.id} value={test.id}>
-                {test.title}
-              </option>
-            ))}
+            {safeAvailableTests && safeAvailableTests.length > 0 ? (
+              safeAvailableTests.map((test) => (
+                <option key={test.id} value={test.id}>
+                  {test.title}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>No tests available</option>
+            )}
           </select>
           {errors.test && (
             <p className="mt-1 text-sm text-danger-600">{errors.test.message?.toString()}</p>
           )}
-          {availableTests.length === 0 && (
+          {safeAvailableTests.length === 0 && (
             <p className="mt-1 text-sm text-warning-600">
               No tests available. Please create a test first.
+            </p>
+          )}
+          {initialData?.test && (
+            <p className="mt-1 text-sm text-success-600">
+              Test selected: {safeAvailableTests.find(t => t.id === initialData.test)?.title || initialData.test}
             </p>
           )}
         </div>
@@ -380,7 +409,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                           }`}
                         >
                           <option value="">Select a skill</option>
-                          {availableSkills.map((skill) => (
+                          {safeAvailableSkills.map((skill) => (
                             <option key={skill.id} value={skill.id}>
                               {skill.name} ({skill.category})
                             </option>

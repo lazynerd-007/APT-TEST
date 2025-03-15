@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FaPlus, FaEdit, FaTrash, FaUpload } from 'react-icons/fa';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { Spinner, Button, Badge } from '@/components/ui';
 import { toast } from 'react-hot-toast';
 import CSVUploadModal from '@/components/assessments/CSVUploadModal';
@@ -32,11 +32,19 @@ const QuestionsPage = () => {
         assessmentsService.getQuestions(params),
         assessmentsService.getTests(),
       ]);
-      setQuestions(questionsData);
-      setAvailableTests(testsData);
+      
+      // Ensure questions is always an array
+      setQuestions(Array.isArray(questionsData) ? questionsData : []);
+      setAvailableTests(Array.isArray(testsData) ? testsData : []);
+      
+      console.log('Fetched questions:', questionsData);
+      console.log('Fetched tests:', testsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load questions');
+      // Set empty arrays in case of error
+      setQuestions([]);
+      setAvailableTests([]);
     } finally {
       setLoading(false);
     }
@@ -240,45 +248,57 @@ const QuestionsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {questions.map((question) => (
-                    <tr key={question.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {question.content.length > 100
-                            ? `${question.content.substring(0, 100)}...`
-                            : question.content}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getQuestionTypeBadge(question.type)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getDifficultyBadge(question.difficulty)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{question.points}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{question.test.title}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => router.push(`/questions/edit/${question.id}`)}
-                            className="text-primary-600 hover:text-primary-900"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(question.id)}
-                            className="text-danger-600 hover:text-danger-900"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
+                  {Array.isArray(questions) && questions.length > 0 ? (
+                    questions.map((question) => (
+                      <tr key={question.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {question.content && question.content.length > 100
+                              ? `${question.content.substring(0, 100)}...`
+                              : question.content || 'No content'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getQuestionTypeBadge(question.type)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getDifficultyBadge(question.difficulty)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{question.points || 0}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {question.test_details?.title || question.test || 'Unknown Test'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => router.push(`/questions/edit/${question.id}`)}
+                            >
+                              <FaEdit className="mr-1" /> Edit
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDelete(question.id)}
+                            >
+                              <FaTrash className="mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                        {loading ? 'Loading questions...' : 'No questions found.'}
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

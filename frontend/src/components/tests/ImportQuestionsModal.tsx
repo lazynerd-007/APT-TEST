@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaUpload, FaFileAlt, FaTimesCircle } from 'react-icons/fa';
 import { Button, Modal } from '@/components/ui';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { toast } from 'react-hot-toast';
 
 interface ImportQuestionsModalProps {

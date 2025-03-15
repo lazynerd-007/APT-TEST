@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import QuestionForm from '@/components/assessments/QuestionForm';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { Spinner } from '@/components/ui';
 import { toast } from 'react-hot-toast';
 

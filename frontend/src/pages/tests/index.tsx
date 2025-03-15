@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FaPlus, FaEdit, FaTrash, FaQuestionCircle } from 'react-icons/fa';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { Spinner, Button, Badge } from '@/components/ui';
 import { toast } from 'react-hot-toast';
 

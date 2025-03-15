@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { FaCheckCircle, FaTimesCircle, FaArrowLeft, FaExclamationCircle, FaSignOutAlt, FaUser } from 'react-icons/fa';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { Spinner, Button, Badge } from '@/components/ui';
 import { toast } from 'react-hot-toast';
 import Head from 'next/head';

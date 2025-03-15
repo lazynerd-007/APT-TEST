@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import { FaSave, FaTimes, FaSpinner } from 'react-icons/fa';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import TestForm from '@/components/assessments/TestForm';
-import { assessmentsService } from '@/services/assessmentsService';
+import assessmentsService from '@/services/assessmentsService';
 import { toast } from 'react-hot-toast';
 
 const CreateTestPage = () => {

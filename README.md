@@ -1,49 +1,31 @@
-# Assessment Platform Tool
+# Assessment Platform
 
-A comprehensive platform for creating, managing, and conducting technical assessments for candidates.
+A comprehensive platform for creating, managing, and taking assessments and tests for candidates.
 
 ## Features
 
-### Test Management
-- Create and manage tests with different categories and difficulty levels
-- Add, edit, and reorder questions within tests
-- Support for multiple question types: Multiple Choice, Coding, Essay, and File Upload
-- Bulk import and export of questions using CSV
-- Preview tests as they will appear to candidates
+- **Employer Features**:
+  - Create and manage assessments
+  - Create and manage tests with different question types (MCQ, Essay, Coding)
+  - Assign assessments to candidates
+  - View candidate results and analytics
 
-### Assessment Management
-- Create assessments by combining multiple tests
-- Assign assessments to candidates
-- Track candidate progress and results
+- **Candidate Features**:
+  - Take assigned assessments and tests
+  - View test results and feedback
+  - Track progress and performance
 
-### Candidate Experience
-- User-friendly interface for taking tests
-- Support for different question types
-- Automatic scoring for objective questions
+## Prerequisites
 
-## Technology Stack
+- Node.js (v14 or higher)
+- Python (v3.8 or higher)
+- Django (v3.2 or higher)
+- PostgreSQL
 
-### Frontend
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
+## Installation
 
-### Backend
-- Django
-- Django REST Framework
-- SQLite (development) / PostgreSQL (production)
+### Backend Setup
 
-## Getting Started
-
-### Prerequisites
-- Node.js (v14+)
-- Python (v3.8+)
-- pip
-
-### Installation
-
-#### Backend Setup
 1. Navigate to the backend directory:
    ```
    cd backend
@@ -55,8 +37,14 @@ A comprehensive platform for creating, managing, and conducting technical assess
    ```
 
 3. Activate the virtual environment:
-   - Windows: `venv\Scripts\activate`
-   - macOS/Linux: `source venv/bin/activate`
+   - On Windows:
+     ```
+     venv\Scripts\activate
+     ```
+   - On macOS/Linux:
+     ```
+     source venv/bin/activate
+     ```
 
 4. Install dependencies:
    ```
@@ -68,12 +56,18 @@ A comprehensive platform for creating, managing, and conducting technical assess
    python manage.py migrate
    ```
 
-6. Start the development server:
+6. Create a superuser:
+   ```
+   python manage.py createsuperuser
+   ```
+
+7. Start the backend server:
    ```
    python manage.py runserver
    ```
 
-#### Frontend Setup
+### Frontend Setup
+
 1. Navigate to the frontend directory:
    ```
    cd frontend
@@ -89,32 +83,69 @@ A comprehensive platform for creating, managing, and conducting technical assess
    npm run dev
    ```
 
-4. Open your browser and navigate to `http://localhost:3000`
-
 ## Usage
 
-### Creating a Test
-1. Navigate to the Tests page
-2. Click "Create Test"
-3. Fill in the test details and save
-4. Add questions to the test
+### Demo Accounts
 
-### Importing Questions
-1. Navigate to a test's details page
-2. Click "Import Questions"
-3. Download the CSV template if needed
-4. Prepare your CSV file with questions
-5. Upload the CSV file
+You can use the demo accounts to explore the platform:
 
-### Exporting Questions
-1. Navigate to a test's details page
-2. Click "Export Questions"
-3. The CSV file will be downloaded automatically
+- **Employer Demo Account**:
+  - Email: demo.employer@example.com
+  - Password: demopassword
 
-### Previewing a Test
-1. Navigate to a test's details page
-2. Click "Preview Test"
-3. Navigate through the questions to see how they will appear to candidates
+- **Candidate Demo Account**:
+  - Email: demo.candidate@example.com
+  - Password: demopassword
+
+### Creating a Demo User
+
+You can create a demo candidate user by clicking the "Try Demo Account" button on the login page.
+
+### Taking a Test
+
+1. Log in as a candidate
+2. Navigate to the dashboard
+3. Find an assessment with the "Not Started" status
+4. Click on "Start Assessment"
+5. Follow the instructions to complete the test
+6. Submit the test when finished
+
+### Creating a Test (Employer)
+
+1. Log in as an employer
+2. Navigate to the "Tests" section
+3. Click on "Create New Test"
+4. Fill in the test details
+5. Add questions to the test
+6. Save the test
+
+### Creating an Assessment (Employer)
+
+1. Log in as an employer
+2. Navigate to the "Assessments" section
+3. Click on "Create New Assessment"
+4. Fill in the assessment details
+5. Add tests to the assessment
+6. Assign the assessment to candidates
+7. Save the assessment
+
+## Development Status
+
+This platform is currently in development. Some features may not be fully implemented yet.
+
+- The test feature is not fully implemented for candidates
+- The test feature is not fully implemented for employers
+
+## Next Steps
+
+To fully implement the test feature, the following steps are required:
+
+1. Complete the backend API for test creation, management, and taking
+2. Implement the frontend interfaces for test creation and management
+3. Implement the frontend interfaces for taking tests
+4. Add analytics and reporting features
+5. Implement automated grading for tests
 
 ## License
+
 This project is licensed under the MIT License - see the LICENSE file for details.
